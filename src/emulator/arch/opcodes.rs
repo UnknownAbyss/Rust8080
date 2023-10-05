@@ -239,6 +239,40 @@ pub enum Opcode {
     CC,
     SBI,
     RST3,
+
+    RPO,
+    POPH,
+    JPO,
+    XTHL,
+    CPO,
+    PUSHH,
+    ANI,
+    RST4,
+
+    RPE,
+    PCHL,
+    JPE,
+    XCHG,
+    CPE,
+    XRI,
+    RST5,
+
+    RP,
+    POPPSW,
+    JP,
+    DI,
+    CP,
+    PUSHPSW,
+    ORI,
+    RST6,
+
+    RM,
+    SPHL,
+    JM,
+    EI,
+    CM,
+    CPI,
+    RST7,
 }
 
 impl Opcode {
@@ -280,14 +314,14 @@ impl Opcode {
             0x1e => Opcode::MVIE,
             0x1f => Opcode::RAR,
             
-            0x20 => Opcode::NOP,        // RIM - special
+            0x20 => Opcode::NIMP(n),        // RIM - special
             0x21 => Opcode::LXIH,
             0x22 => Opcode::SHLD,
             0x23 => Opcode::INXH,
             0x24 => Opcode::INRH,
             0x25 => Opcode::DCRH,
             0x26 => Opcode::MVIH,
-            0x27 => Opcode::NOP,        // DAA - special
+            0x27 => Opcode::NIMP(n),        // DAA - special
 
             0x28 => Opcode::NOP,
             0x29 => Opcode::DADH,
@@ -298,7 +332,7 @@ impl Opcode {
             0x2e => Opcode::MVIL,
             0x2f => Opcode::CMA,
             
-            0x30 => Opcode::NOP,        // SIM - special
+            0x30 => Opcode::NIMP(n),        // SIM - special
             0x31 => Opcode::LXISP,
             0x32 => Opcode::STA,
             0x33 => Opcode::INXSP,
@@ -481,7 +515,7 @@ impl Opcode {
             0xd0 => Opcode::RNC,
             0xd1 => Opcode::POPD,
             0xd2 => Opcode::JNC,
-            0xd3 => Opcode::NOP,        // OUT - special
+            0xd3 => Opcode::NIMP(n),        // OUT - special
             0xd4 => Opcode::CNC,
             0xd5 => Opcode::PUSHD,
             0xd6 => Opcode::SUI,
@@ -490,47 +524,47 @@ impl Opcode {
             0xd8 => Opcode::RC,
             0xd9 => Opcode::NOP,
             0xda => Opcode::JC,
-            0xdb => Opcode::NOP,        // IN - special
+            0xdb => Opcode::NIMP(n),        // IN - special
             0xdc => Opcode::CC,
             0xdd => Opcode::NOP,
             0xde => Opcode::SBI,
             0xdf => Opcode::RST3,
             //
-            0xe0 => Opcode::NIMP(n),
-            0xe1 => Opcode::NIMP(n),
-            0xe2 => Opcode::NIMP(n),
-            0xe3 => Opcode::NIMP(n),
-            0xe4 => Opcode::NIMP(n),
-            0xe5 => Opcode::NIMP(n),
-            0xe6 => Opcode::NIMP(n),
-            0xe7 => Opcode::NIMP(n),
+            0xe1 => Opcode::RPO,
+            0xe2 => Opcode::POPH,
+            0xe0 => Opcode::JPO,
+            0xe3 => Opcode::XTHL,
+            0xe4 => Opcode::CPO,
+            0xe5 => Opcode::PUSHH,
+            0xe6 => Opcode::ANI,
+            0xe7 => Opcode::RST4,
             
-            0xe8 => Opcode::NIMP(n),
-            0xe9 => Opcode::NIMP(n),
-            0xea => Opcode::NIMP(n),
-            0xeb => Opcode::NIMP(n),
-            0xec => Opcode::NIMP(n),
-            0xed => Opcode::NIMP(n),
-            0xee => Opcode::NIMP(n),
-            0xef => Opcode::NIMP(n),
+            0xe8 => Opcode::RPE,
+            0xe9 => Opcode::PCHL,
+            0xea => Opcode::JPE,
+            0xeb => Opcode::XCHG,
+            0xec => Opcode::CPE,
+            0xed => Opcode::NOP,
+            0xee => Opcode::XRI,
+            0xef => Opcode::RST5,
             //
-            0xf0 => Opcode::NIMP(n),
-            0xf1 => Opcode::NIMP(n),
-            0xf2 => Opcode::NIMP(n),
-            0xf3 => Opcode::NIMP(n),
-            0xf4 => Opcode::NIMP(n),
-            0xf5 => Opcode::NIMP(n),
-            0xf6 => Opcode::NIMP(n),
-            0xf7 => Opcode::NIMP(n),
+            0xf0 => Opcode::RP,
+            0xf1 => Opcode::POPPSW,
+            0xf2 => Opcode::JP,
+            0xf3 => Opcode::DI,        // DI - special
+            0xf4 => Opcode::CP,
+            0xf5 => Opcode::PUSHPSW,
+            0xf6 => Opcode::ORI,
+            0xf7 => Opcode::RST6,
             
-            0xf8 => Opcode::NIMP(n),
-            0xf9 => Opcode::NIMP(n),
-            0xfa => Opcode::NIMP(n),
-            0xfb => Opcode::NIMP(n),
-            0xfc => Opcode::NIMP(n),
-            0xfd => Opcode::NIMP(n),
-            0xfe => Opcode::NIMP(n),
-            0xff => Opcode::NIMP(n),
+            0xf8 => Opcode::RM,
+            0xfa => Opcode::SPHL,
+            0xf9 => Opcode::JM,
+            0xfb => Opcode::EI,        // EI - special
+            0xfc => Opcode::CM,
+            0xfd => Opcode::NOP,
+            0xfe => Opcode::CPI,
+            0xff => Opcode::RST7,
         }
     }
 }

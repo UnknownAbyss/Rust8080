@@ -1065,6 +1065,205 @@ pub fn run_op(state: &mut State) {
             state.pc = 0x18;
         },
 
+        Opcode::RPO => {
+            if state.flags.get(FlagType::P) != 0b1 {
+                state.pc = join_bytes(state.mem[state.sp as usize + 1], state.mem[state.sp as usize]);
+                state.sp += 2;
+            }
+        },
+        Opcode::POPH => {
+            state.l = state.mem[state.sp as usize];
+            state.h = state.mem[state.sp as usize + 1];
+            state.sp += 2;
+        },
+        Opcode::JPO => {
+            if state.flags.get(FlagType::P) != 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::XTHL => {
+            let tempsp = state.mem[state.sp as usize];
+            let tempsp1 = state.mem[state.sp as usize + 1];
+            state.mem[state.sp as usize] = state.l;
+            state.mem[state.sp as usize + 1] = state.h;
+            state.l = tempsp;
+            state.h = tempsp1;
+        },
+        Opcode::CPO => {
+            if state.flags.get(FlagType::P) != 0b1 {
+                let (pchi, pclo) = split_bytes(state.pc);
+                state.mem[state.sp as usize - 1] = pchi;
+                state.mem[state.sp as usize - 2] = pclo;
+                state.sp += 2;
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::PUSHH => {
+            state.mem[state.sp as usize - 1] = state.h;
+            state.mem[state.sp as usize - 2] = state.l;
+            state.sp -= 2;
+        },
+        Opcode::ANI => {
+            check_flag_cy8((state.a as u16) & (state.mem[_pc + 1] as u16), state);
+            state.a &= state.mem[_pc + 1];
+            check_flag_z(state.a, state);
+            check_flag_s(state.a, state);
+            check_flag_p(state.a, state);
+            state.pc += 1;
+        },
+        Opcode::RST4 => {
+            let (pchi, pclo) = split_bytes(state.pc);
+            state.mem[state.sp as usize - 1] = pchi;
+            state.mem[state.sp as usize - 2] = pclo;
+            state.sp += 2;
+            state.pc = 0x20;
+        },
+
+        Opcode::RPE => {
+            if state.flags.get(FlagType::P) == 0b1 {
+                state.pc = join_bytes(state.mem[state.sp as usize + 1], state.mem[state.sp as usize]);
+                state.sp += 2;
+            }
+        },
+        Opcode::PCHL => {
+            state.pc = join_bytes(state.h, state.l);
+        },
+        Opcode::JPE => {
+            if state.flags.get(FlagType::P) == 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::XCHG => {
+            let temph = state.h;
+            let templ = state.l;
+            state.h = state.d;
+            state.l = state.e;
+            state.d = temph;
+            state.e = templ;
+        },
+        Opcode::CPE => {
+            if state.flags.get(FlagType::P) == 0b1 {
+                let (pchi, pclo) = split_bytes(state.pc);
+                state.mem[state.sp as usize - 1] = pchi;
+                state.mem[state.sp as usize - 2] = pclo;
+                state.sp += 2;
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::XRI => {
+            check_flag_cy8((state.a as u16) ^ (state.mem[_pc + 1] as u16), state);
+            state.a ^= state.mem[_pc + 1];
+            check_flag_z(state.a, state);
+            check_flag_s(state.a, state);
+            check_flag_p(state.a, state);
+            state.pc += 1;
+        },
+        Opcode::RST5 => {
+            let (pchi, pclo) = split_bytes(state.pc);
+            state.mem[state.sp as usize - 1] = pchi;
+            state.mem[state.sp as usize - 2] = pclo;
+            state.sp += 2;
+            state.pc = 0x28;
+        },
+
+        Opcode::RP => {
+            if state.flags.get(FlagType::S) != 0b1 {
+                state.pc = join_bytes(state.mem[state.sp as usize + 1], state.mem[state.sp as usize]);
+                state.sp += 2;
+            }
+        },
+        Opcode::POPPSW => {
+            state.flags.reg = state.mem[state.sp as usize];
+            state.a = state.mem[state.sp as usize + 1];
+            state.sp += 2;
+        },
+        Opcode::JP => {
+            if state.flags.get(FlagType::S) != 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::DI => {
+            state.enable = 0;
+        }
+        Opcode::CP => {
+            if state.flags.get(FlagType::S) != 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::PUSHPSW => {
+            state.mem[state.sp as usize - 2] =  state.flags.reg;
+            state.mem[state.sp as usize - 1] =  state.a;
+            state.sp -= 2;
+        },
+        Opcode::ORI => {
+            check_flag_cy8((state.a as u16) | (state.mem[_pc + 1] as u16), state);
+            state.a |= state.mem[_pc + 1];
+            check_flag_z(state.a, state);
+            check_flag_s(state.a, state);
+            check_flag_p(state.a, state);
+            state.pc += 1;
+        },
+        Opcode::RST6 => {
+            let (pchi, pclo) = split_bytes(state.pc);
+            state.mem[state.sp as usize - 1] = pchi;
+            state.mem[state.sp as usize - 2] = pclo;
+            state.sp += 2;
+            state.pc = 0x30;
+        },
+
+        Opcode::RM => {
+            if state.flags.get(FlagType::S) == 0b1 {
+                state.pc = join_bytes(state.mem[state.sp as usize + 1], state.mem[state.sp as usize]);
+                state.sp += 2;
+            }
+        },
+        Opcode::SPHL => {
+            state.sp = join_bytes(state.h, state.l);
+        },
+        Opcode::JM => {
+            if state.flags.get(FlagType::S) == 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::EI => {
+            state.enable = 1;
+        }
+        Opcode::CM => {
+            if state.flags.get(FlagType::S) == 0b1 {
+                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
+            } else {
+                state.pc += 2;
+            }
+        },
+        Opcode::CPI => {
+            check_flag_cy8((state.a as u16) - (state.mem[_pc + 1] as u16), state);
+            check_flag_z(state.a - state.mem[_pc + 1], state);
+            check_flag_s(state.a - state.mem[_pc + 1], state);
+            check_flag_p(state.a - state.mem[_pc + 1], state);
+            state.pc += 1;
+        },
+        Opcode::RST7 => {
+            let (pchi, pclo) = split_bytes(state.pc);
+            state.mem[state.sp as usize - 1] = pchi;
+            state.mem[state.sp as usize - 2] = pclo;
+            state.sp += 2;
+            state.pc = 0x38;
+        },
+
 
         // Not implemented Instructions
         Opcode::NIMP(x) => {
