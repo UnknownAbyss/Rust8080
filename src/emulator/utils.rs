@@ -35,8 +35,16 @@ pub fn check_flag_p(reg: u8, state: &mut State) {
     }
 }
 
-pub fn check_flag_cy(reg: u16, state: &mut State) { 
+pub fn check_flag_cy8(reg: u16, state: &mut State) { 
     if reg > 0xff {
+        state.flags.set(super::arch::flag::FlagType::CY);
+    } else {
+        state.flags.unset(super::arch::flag::FlagType::CY);
+    }
+}
+
+pub fn check_flag_cy16(reg: u32, state: &mut State) { 
+    if reg > 0xffff {
         state.flags.set(super::arch::flag::FlagType::CY);
     } else {
         state.flags.unset(super::arch::flag::FlagType::CY);
