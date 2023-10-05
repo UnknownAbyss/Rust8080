@@ -1,22 +1,16 @@
-use emulator::arch::state;
-mod emulator;
-
+use std::process;
+use rust8080;
 
 fn main() {
-    let mut memory = [0,0x1f,0x1f,0x1f];
-    let mut state = state::State::new(&mut memory);
-    
-    state.a = 0b11000010;
-    
-    emulator::iset::run_op(&mut state);
-    println!("Flags: {:#010b}, A: {:#010b}", state.flags.reg, state.a);
+    let file = "./rom/spaceinvaders/invaders_final.rom";
 
-    emulator::iset::run_op(&mut state);
-    println!("Flags: {:#010b}, A: {:#010b}", state.flags.reg, state.a);
-    
-    emulator::iset::run_op(&mut state);
-    println!("Flags: {:#010b}, A: {:#010b}", state.flags.reg, state.a);
+    let mut memory = rust8080::load_rom(file)
+    .unwrap_or_else(|err| {
+        eprintln!("Error loading rom: {}", err);
+        process::exit(-1);
+    });
 
-    emulator::iset::run_op(&mut state);
-    println!("Flags: {:#010b}, A: {:#010b}", state.flags.reg, state.a);
+    let state = rust8080::State::new(&mut memory);
+
+    rust8080::emulate(state);
 }

@@ -17,7 +17,7 @@ pub struct State<'a> {
 } 
 
 impl State<'_>{
-    pub fn new<'a>(mem: &'a mut [u8]) -> State<'a> {
+    pub fn new<'a>(mem: &'a mut Vec<u8>) -> State<'a> {
         State { 
             a: 0, 
             b: 0, 
@@ -26,7 +26,7 @@ impl State<'_>{
             e: 0, 
             h: 0, 
             l: 0, 
-            sp: 0, 
+            sp: 0xf000, 
             pc: 0, 
             mem, 
             flags: Flag::new(), 

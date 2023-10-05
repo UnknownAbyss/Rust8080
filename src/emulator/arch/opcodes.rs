@@ -1,3 +1,14 @@
+use std::fmt;
+
+
+
+impl fmt::Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+       write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug)]
 pub enum Opcode {
     NIMP(u8),
 
@@ -276,6 +287,56 @@ pub enum Opcode {
 }
 
 impl Opcode {
+    pub fn cycles(op: Opcode) -> u8 {
+        match op {
+            Self::LXIB => 3,
+            Self::LXID => 3,
+            Self::LXIH => 3,
+            Self::LXISP => 3,
+            Self::SHLD => 3,
+            Self::LHLD => 3,
+            Self::STA => 3,
+            Self::LDA => 3,
+            Self::JNZ => 3,
+            Self::JMP => 3,
+            Self::JP => 3,
+            Self::JZ => 3,
+            Self::JC => 3,
+            Self::JNC => 3,
+            Self::JPO => 3,
+            Self::JPE => 3,
+            Self::JM => 3,
+            Self::CM => 3,
+            Self::CP => 3,
+            Self::CPE => 3,
+            Self::CPO => 3,
+            Self::CNC => 3,
+            Self::CNZ => 3,
+            Self::CZ => 3,
+            Self::CC => 3,
+            Self::CALL => 3,
+
+            Self::MVIB => 2,
+            Self::MVIC => 2,
+            Self::MVID => 2,
+            Self::MVIE => 2,
+            Self::MVIH => 2,
+            Self::MVIL => 2,
+            Self::MVIM => 2,
+            Self::MVIA => 2,
+            Self::ADI => 2,
+            Self::ACI => 2,
+            Self::ANI => 2,
+            Self::SUI => 2,
+            Self::SBI => 2,
+            Self::XRI => 2,
+            Self::ORI => 2,
+            Self::CPI => 2,
+
+            _ => 1
+        }
+    }
+
     pub fn convert(n: u8) -> Opcode {
         match n {
             0x00 => Opcode::NOP,
@@ -567,4 +628,6 @@ impl Opcode {
             0xff => Opcode::RST7,
         }
     }
+
+
 }

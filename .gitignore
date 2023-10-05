@@ -1,5 +1,7 @@
 debug/
 target/
+rom/spaceinvaders/invaders.*
+rom/test
 Cargo.lock
 **/*.rs.bk
 *.pdb
