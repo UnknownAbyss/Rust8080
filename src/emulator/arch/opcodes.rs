@@ -1,10 +1,8 @@
 use std::fmt;
 
-
-
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       write!(f, "{:?}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -183,7 +181,7 @@ pub enum Opcode {
     SBBL,
     SBBM,
     SBBA,
-    
+
     ANAB,
     ANAC,
     ANAD,
@@ -192,7 +190,7 @@ pub enum Opcode {
     ANAL,
     ANAM,
     ANAA,
-    
+
     XRAB,
     XRAC,
     XRAD,
@@ -201,7 +199,7 @@ pub enum Opcode {
     XRAL,
     XRAM,
     XRAA,
-    
+
     ORAB,
     ORAC,
     ORAD,
@@ -287,7 +285,8 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    pub fn cycles(op: Opcode) -> u8 {
+    pub fn cycles(opcode: u8) -> u8 {
+        let op = Opcode::convert(opcode);
         match op {
             Self::LXIB => 3,
             Self::LXID => 3,
@@ -333,7 +332,8 @@ impl Opcode {
             Self::ORI => 2,
             Self::CPI => 2,
 
-            _ => 1
+            Self::NOP => 4,
+            _ => 1,
         }
     }
 
@@ -347,7 +347,7 @@ impl Opcode {
             0x05 => Opcode::DCRB,
             0x06 => Opcode::MVIB,
             0x07 => Opcode::RLC,
-            
+
             0x08 => Opcode::NOP,
             0x09 => Opcode::DADB,
             0x0a => Opcode::LDAXB,
@@ -356,7 +356,7 @@ impl Opcode {
             0x0d => Opcode::DCRC,
             0x0e => Opcode::MVIC,
             0x0f => Opcode::RRC,
-            
+
             0x10 => Opcode::NOP,
             0x11 => Opcode::LXID,
             0x12 => Opcode::STAXD,
@@ -374,15 +374,15 @@ impl Opcode {
             0x1d => Opcode::DCRE,
             0x1e => Opcode::MVIE,
             0x1f => Opcode::RAR,
-            
-            0x20 => Opcode::NIMP(n),        // RIM - special
+
+            0x20 => Opcode::NIMP(n), // RIM - special
             0x21 => Opcode::LXIH,
             0x22 => Opcode::SHLD,
             0x23 => Opcode::INXH,
             0x24 => Opcode::INRH,
             0x25 => Opcode::DCRH,
             0x26 => Opcode::MVIH,
-            0x27 => Opcode::NIMP(n),        // DAA - special
+            0x27 => Opcode::NIMP(n), // DAA - special
 
             0x28 => Opcode::NOP,
             0x29 => Opcode::DADH,
@@ -392,8 +392,8 @@ impl Opcode {
             0x2d => Opcode::DCRL,
             0x2e => Opcode::MVIL,
             0x2f => Opcode::CMA,
-            
-            0x30 => Opcode::NIMP(n),        // SIM - special
+
+            0x30 => Opcode::NIMP(n), // SIM - special
             0x31 => Opcode::LXISP,
             0x32 => Opcode::STA,
             0x33 => Opcode::INXSP,
@@ -437,7 +437,7 @@ impl Opcode {
             0x55 => Opcode::MOVDL,
             0x56 => Opcode::MOVDM,
             0x57 => Opcode::MOVDA,
-            
+
             0x58 => Opcode::MOVEB,
             0x59 => Opcode::MOVEC,
             0x5a => Opcode::MOVED,
@@ -455,7 +455,7 @@ impl Opcode {
             0x65 => Opcode::MOVHL,
             0x66 => Opcode::MOVHM,
             0x67 => Opcode::MOVHA,
-            
+
             0x68 => Opcode::MOVLB,
             0x69 => Opcode::MOVLC,
             0x6a => Opcode::MOVLD,
@@ -473,7 +473,7 @@ impl Opcode {
             0x75 => Opcode::MOVML,
             0x76 => Opcode::HLT,
             0x77 => Opcode::MOVMA,
-            
+
             0x78 => Opcode::MOVAB,
             0x79 => Opcode::MOVAC,
             0x7a => Opcode::MOVAD,
@@ -491,7 +491,7 @@ impl Opcode {
             0x85 => Opcode::ADDL,
             0x86 => Opcode::ADDM,
             0x87 => Opcode::ADDA,
-            
+
             0x88 => Opcode::ADCB,
             0x89 => Opcode::ADCC,
             0x8a => Opcode::ADCD,
@@ -509,7 +509,7 @@ impl Opcode {
             0x95 => Opcode::SUBL,
             0x96 => Opcode::SUBM,
             0x97 => Opcode::SUBA,
-            
+
             0x98 => Opcode::SBBB,
             0x99 => Opcode::SBBC,
             0x9a => Opcode::SBBD,
@@ -527,7 +527,7 @@ impl Opcode {
             0xa5 => Opcode::ANAL,
             0xa6 => Opcode::ANAM,
             0xa7 => Opcode::ANAA,
-            
+
             0xa8 => Opcode::XRAB,
             0xa9 => Opcode::XRAC,
             0xaa => Opcode::XRAD,
@@ -545,7 +545,7 @@ impl Opcode {
             0xb5 => Opcode::ORAL,
             0xb6 => Opcode::ORAM,
             0xb7 => Opcode::ORAA,
-            
+
             0xb8 => Opcode::CMPB,
             0xb9 => Opcode::CMPC,
             0xba => Opcode::CMPD,
@@ -563,7 +563,7 @@ impl Opcode {
             0xc5 => Opcode::PUSHB,
             0xc6 => Opcode::ADI,
             0xc7 => Opcode::RST0,
-            
+
             0xc8 => Opcode::RZ,
             0xc9 => Opcode::RET,
             0xca => Opcode::JZ,
@@ -576,16 +576,16 @@ impl Opcode {
             0xd0 => Opcode::RNC,
             0xd1 => Opcode::POPD,
             0xd2 => Opcode::JNC,
-            0xd3 => Opcode::NIMP(n),        // OUT - special
+            0xd3 => Opcode::NIMP(n), // OUT - special
             0xd4 => Opcode::CNC,
             0xd5 => Opcode::PUSHD,
             0xd6 => Opcode::SUI,
             0xd7 => Opcode::RST2,
-            
+
             0xd8 => Opcode::RC,
             0xd9 => Opcode::NOP,
             0xda => Opcode::JC,
-            0xdb => Opcode::NIMP(n),        // IN - special
+            0xdb => Opcode::NIMP(n), // IN - special
             0xdc => Opcode::CC,
             0xdd => Opcode::NOP,
             0xde => Opcode::SBI,
@@ -599,7 +599,7 @@ impl Opcode {
             0xe5 => Opcode::PUSHH,
             0xe6 => Opcode::ANI,
             0xe7 => Opcode::RST4,
-            
+
             0xe8 => Opcode::RPE,
             0xe9 => Opcode::PCHL,
             0xea => Opcode::JPE,
@@ -612,22 +612,20 @@ impl Opcode {
             0xf0 => Opcode::RP,
             0xf1 => Opcode::POPPSW,
             0xf2 => Opcode::JP,
-            0xf3 => Opcode::DI,        // DI - special
+            0xf3 => Opcode::DI, // DI - special
             0xf4 => Opcode::CP,
             0xf5 => Opcode::PUSHPSW,
             0xf6 => Opcode::ORI,
             0xf7 => Opcode::RST6,
-            
+
             0xf8 => Opcode::RM,
             0xfa => Opcode::SPHL,
             0xf9 => Opcode::JM,
-            0xfb => Opcode::EI,        // EI - special
+            0xfb => Opcode::EI, // EI - special
             0xfc => Opcode::CM,
             0xfd => Opcode::NOP,
             0xfe => Opcode::CPI,
             0xff => Opcode::RST7,
         }
     }
-
-
 }

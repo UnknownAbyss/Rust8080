@@ -27,7 +27,7 @@ impl Flag {
             PAD => (self.reg) & 0b111,
         }
     }
-    
+
     pub fn set(&mut self, f: FlagType) {
         use FlagType::*;
         match f {
@@ -61,13 +61,13 @@ mod tests {
     #[test]
     fn z() {
         let mut flag = Flag::new();
-        
+
         assert_eq!(flag.get(Z), 0);
         assert_eq!(flag.get(S), 0);
         assert_eq!(flag.get(P), 0);
         assert_eq!(flag.get(CY), 0);
         assert_eq!(flag.get(AC), 0);
-                
+
         flag.set(Z);
         assert_eq!(flag.get(Z), 1);
         assert_eq!(flag.get(S), 0);
@@ -75,7 +75,7 @@ mod tests {
         assert_eq!(flag.get(CY), 0);
         assert_eq!(flag.get(AC), 0);
         flag.unset(Z);
-        
+
         flag.set(S);
         assert_eq!(flag.get(Z), 0);
         assert_eq!(flag.get(S), 1);
@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(flag.get(CY), 0);
         assert_eq!(flag.get(AC), 0);
         flag.unset(S);
-        
+
         flag.set(P);
         assert_eq!(flag.get(Z), 0);
         assert_eq!(flag.get(S), 0);
@@ -91,7 +91,7 @@ mod tests {
         assert_eq!(flag.get(CY), 0);
         assert_eq!(flag.get(AC), 0);
         flag.unset(P);
-        
+
         flag.set(CY);
         assert_eq!(flag.get(Z), 0);
         assert_eq!(flag.get(S), 0);
@@ -99,7 +99,7 @@ mod tests {
         assert_eq!(flag.get(CY), 1);
         assert_eq!(flag.get(AC), 0);
         flag.unset(CY);
-        
+
         flag.set(AC);
         assert_eq!(flag.get(Z), 0);
         assert_eq!(flag.get(S), 0);

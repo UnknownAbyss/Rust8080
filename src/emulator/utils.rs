@@ -5,10 +5,7 @@ pub fn join_bytes(reg1: u8, reg2: u8) -> u16 {
 }
 
 pub fn split_bytes(word: u16) -> (u8, u8) {
-    (
-        (word >> 8) as u8,
-        (word & 0xff) as u8,
-    )
+    ((word >> 8) as u8, (word & 0xff) as u8)
 }
 
 pub fn check_flag_z(reg: u8, state: &mut State) {
@@ -19,7 +16,7 @@ pub fn check_flag_z(reg: u8, state: &mut State) {
     }
 }
 
-pub fn check_flag_s(reg: u8, state: &mut State) { 
+pub fn check_flag_s(reg: u8, state: &mut State) {
     if reg >> 7 == 0b1 {
         state.flags.set(super::arch::flag::FlagType::S);
     } else {
@@ -27,7 +24,7 @@ pub fn check_flag_s(reg: u8, state: &mut State) {
     }
 }
 
-pub fn check_flag_p(reg: u8, state: &mut State) { 
+pub fn check_flag_p(reg: u8, state: &mut State) {
     if reg & 0b1 == 0b0 {
         state.flags.set(super::arch::flag::FlagType::P);
     } else {
@@ -35,7 +32,7 @@ pub fn check_flag_p(reg: u8, state: &mut State) {
     }
 }
 
-pub fn check_flag_cy8(reg: u16, state: &mut State) { 
+pub fn check_flag_cy8(reg: u16, state: &mut State) {
     if reg > 0xff {
         state.flags.set(super::arch::flag::FlagType::CY);
     } else {
@@ -43,7 +40,7 @@ pub fn check_flag_cy8(reg: u16, state: &mut State) {
     }
 }
 
-pub fn check_flag_cy16(reg: u32, state: &mut State) { 
+pub fn check_flag_cy16(reg: u32, state: &mut State) {
     if reg > 0xffff {
         state.flags.set(super::arch::flag::FlagType::CY);
     } else {
