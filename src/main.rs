@@ -1,8 +1,6 @@
 use macroquad::window::Conf;
 use rust8080;
 use std::process;
-mod video;
-
 
 fn window_conf() -> Conf {
     Conf {
@@ -10,6 +8,7 @@ fn window_conf() -> Conf {
         window_width: 560,
         window_height: 640,
         fullscreen: false,
+        window_resizable: false,
         ..Default::default()
     }
 }
@@ -23,7 +22,7 @@ async fn main() {
         process::exit(-1);
     });
 
-    let mut state = rust8080::State::new(memory);
-
-    rust8080::emulate(&mut state).await;
+    let state = rust8080::State::new(memory);
+    let io = rust8080::IO::new(); 
+    rust8080::emulate(state, io).await;
 }

@@ -8,14 +8,12 @@ pub use crate::{
             flag::{Flag, FlagType},
             opcodes::Opcode,
         },
-        iset::run_op,
         utils::join_bytes,
     },
     State,
 };
 
-use crate::video::graphics;
-
+use crate::{machine::video::graphics, IO};
 
 pub const WIDTH: u32 = 50;
 pub const HEIGHT: u32 = 20;
@@ -65,6 +63,7 @@ pub const HIGHLIGHT: Color = Color::Rgb {
 pub async fn process_input(
     engine: &ConsoleEngine,
     state: &mut State,
+    io: &mut IO,
     kb: &mut bool,
     mv: &mut i32,
     debug: &mut bool,
@@ -89,19 +88,19 @@ pub async fn process_input(
 
     if engine.is_key_held(KeyCode::Char('r')) {
         *mv = 0;
-        run_op(state);
+        state.run_op();
         if *live {
-            graphics::graphics(&state.mem).await;
+            graphics::graphics(&state.mem, io).await;
         }
     }
     
     if engine.is_key_held(KeyCode::Char('R')) {
         *mv = 0;
         for _ in 0..100 {
-            run_op(state);
+            state.run_op();
         }
         if *live {
-            graphics::graphics(&state.mem).await;
+            graphics::graphics(&state.mem, io).await;
         }
     }
 
@@ -114,7 +113,7 @@ pub async fn process_input(
     }
 
     if engine.is_key_held(KeyCode::Char('s')) || engine.is_key_pressed(KeyCode::Char('S')) {
-        graphics::graphics(&state.mem).await;
+        graphics::graphics(&state.mem, io).await;
     }
 
     if engine.is_key_pressed(KeyCode::Char('h'))
@@ -171,23 +170,26 @@ pub fn keybinds() -> Screen {
     scr
 }
 
-pub fn disass(state: &State, height: u32, width: u32, line: &i32) -> Screen {
+pub fn disass(state: &State, io: &IO, height: u32, width: u32, line: &i32) -> Screen {
     let mut scr = Screen::new(width - 6, height - 4);
 
-    scr.print_screen(1, 0, &display_status(state));
+    scr.print_screen(1, 0, &display_status(state, io));
     scr.print_screen(1, 6, &display_ops(state, height, line));
 
     scr
 }
 
-fn display_status(state: &State) -> Screen {
-    let mut scr = Screen::new(55, 5);
+fn display_status(state: &State, io: &IO) -> Screen {
+    let mut scr = Screen::new(83, 5);
 
     scr.print_fbg(1, 0, "Flags:", NORMAL, Color::Reset);
     scr.print_screen(0, 1, &display_flags(&state.flags));
 
     scr.print_fbg(22, 0, "Registers:", NORMAL, Color::Reset);
     scr.print_screen(21, 1, &display_regs(&state));
+
+    scr.print_fbg(55, 0, "Ports:", NORMAL, Color::Reset);
+    scr.print_screen(54, 1, &display_ports(&io));
     scr
 }
 
@@ -402,6 +404,48 @@ fn display_ops(state: &State, height: u32, line: &i32) -> Screen {
 
         counter += 1;
     }
+    scr
+}
+
+pub fn display_ports(io: &IO) -> Screen {
+    let mut scr = Screen::new(27, 4);
+    scr.rect_border(
+        0,
+        0,
+        scr.get_width() as i32 - 1,
+        scr.get_height() as i32 - 1,
+        BorderStyle::new_heavy().with_colors(DARK, Color::Reset),
+    );
+    scr.print_fbg(2, 1, "R1:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 1, "R2:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 2, "SH:", NORMAL, Color::Reset);
+    // scr.print_fbg(2, 3, "R3:", NORMAL, Color::Reset);
+    for i in 0..8 {
+        scr.print_fbg(
+            5 + i, 
+            1, 
+            &format!("{}", io.R1.bit(i as u8)), 
+            if io.R1.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            Color::Reset
+        );
+    }
+    for i in 0..8 {
+        scr.print_fbg(
+        17 + i, 
+            1, 
+            &format!("{}", io.R2.bit(i as u8)), 
+            if io.R2.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            Color::Reset
+        );
+    }
+    scr.print_fbg(
+        5, 
+        2, 
+        &format!("{:08b}|{:08b}", io.shift >> 8, io.shift & 0xff), 
+        ENABLED, 
+        Color::Reset
+    );
+
     scr
 }
 

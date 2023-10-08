@@ -2,22 +2,23 @@ use console_engine::rect_style::BorderStyle;
 use console_engine::Color;
 use console_engine::{self, pixel, ConsoleEngine};
 pub use emulator::arch::state::State;
-use emulator::iset::run_op;
-use video::graphics;
+use machine::video::graphics;
+pub use machine::io::IO;
+use machine::io::Actions;
 use std::process;
 use std::{error::Error, fs};
 use console::*;
 
 mod emulator;
 mod console;
-mod video;
+mod machine;
 
 pub fn load_rom(file_path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let file_data = fs::read(file_path)?;
     Ok(file_data)
 }
 
-pub async fn emulate(mut state: &mut State) {
+pub async fn emulate(mut state: State, mut io: IO) {
     let mut engine =
         console_engine::ConsoleEngine::init(WIDTH, HEIGHT, TARGET_FPS).unwrap_or_else(|err| {
             println!("Could not create screen: {err}");
@@ -35,12 +36,12 @@ pub async fn emulate(mut state: &mut State) {
         engine.check_resize();
         engine.clear_screen();
         
-        if process_input(&engine, &mut state, &mut show_keybinds, &mut mv, &mut debug, &mut live).await {
+        if process_input(&engine, &mut state, &mut io, &mut show_keybinds, &mut mv, &mut debug, &mut live).await {
             break;
         };
 
         if debug {
-            debug_state(&mut engine, &state, &mut pulse, &show_keybinds, &mv);
+            debug_state(&mut engine, &state, &io, &mut pulse, &show_keybinds, &mv);
             if live {
                 engine.print_fbg(
                     engine.get_width() as i32 - 33,
@@ -51,9 +52,9 @@ pub async fn emulate(mut state: &mut State) {
                 );
             }
         } else {
-            running_state(&mut engine, &mut state);
+            running_state(&mut engine, &mut state, &io);
             engine.print(0, 0, &format!("{}", engine.frame_count));
-            debug = graphics::graphics(&state.mem).await;
+            debug = graphics::graphics(&state.mem, &mut io).await;
         }
 
 
@@ -64,6 +65,7 @@ pub async fn emulate(mut state: &mut State) {
 fn debug_state(
     engine: &mut ConsoleEngine,
     state: &State,
+    io: &IO,
     pulse: &mut f32,
     show_keybinds: &bool,
     mv: &i32,
@@ -79,7 +81,7 @@ fn debug_state(
     engine.print_screen(
         3,
         2,
-        &disass(&state, engine.get_height(), engine.get_width(), &mv),
+        &disass(&state, &io, engine.get_height(), engine.get_width(), &mv),
     );
 
     engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
@@ -98,7 +100,7 @@ fn debug_state(
     );
 }
 
-fn running_state(engine: &mut ConsoleEngine, state: &mut State) {
+fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &IO) {
     engine.fill_rect(
         1,
         1,
@@ -135,7 +137,9 @@ fn running_state(engine: &mut ConsoleEngine, state: &mut State) {
         Color::Reset,
     );
 
+    engine.print_screen(2, 1, &display_ports(&io));
+
     for _ in 0..50 {
-        run_op(state);
+        state.run_op();
     }
 }

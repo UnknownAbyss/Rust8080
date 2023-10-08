@@ -1,18 +1,27 @@
 use std::process;
-
 use macroquad::prelude::*;
+use crate::{IO, machine::io::Actions};
 
-pub async fn graphics(mem: &Vec<u8>) -> bool {
+pub async fn graphics(mem: &Vec<u8>, io: &mut IO) -> bool {
     clear_background(BLACK);
+
+    handle_input(io);
+
+    if is_quit_requested() { process::exit(-1) }
+
+    draw_screen(&mem);
+    next_frame().await;
+
+    if is_key_down(KeyCode::D) { return true }
+    false
+}
+
+fn draw_screen(mem: &Vec<u8>) {
     let w = screen_width();
     let h = screen_height();
     let facx = w/224.0;
     let facy = h/256.0;
 
-    if is_quit_requested() {
-        process::exit(-1);
-    }
-    
     for j in 0..224 {
         for i in 0..32 {
             let byte = mem[0x2400 + i + j*32];
@@ -35,10 +44,15 @@ pub async fn graphics(mem: &Vec<u8>) -> bool {
     }
     
     draw_text("(d)ebug", 1.0, w / 20.0, w / 20.0, RED);
+}
 
-    next_frame().await;
-    
-    if is_key_down(KeyCode::D) { return true }
+fn handle_input(io: &mut IO) {
+    io.io_reset_input();
 
-    false
+    if is_key_down(KeyCode::Comma) {
+        io.io_op(Actions::P1Left);
+    }
+    if is_key_down(KeyCode::Period) {
+        io.io_op(Actions::P1Right);
+    }
 }

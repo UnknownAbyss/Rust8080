@@ -3,1359 +3,1363 @@ use std::process;
 use super::arch::{flag::FlagType, opcodes::Opcode, state::State};
 use super::utils::*;
 
-pub fn run_op(state: &mut State) {
-    let _pc = state.pc as usize;
-    let opcode = state.mem[_pc];
 
-    match Opcode::convert(opcode) {
-        Opcode::NOP => (),
-        Opcode::LXIB => {
-            state.b = state.mem[_pc + 2];
-            state.c = state.mem[_pc + 1];
-            state.pc += 2;
-        }
-        Opcode::STAXB => {
-            let bc = join_bytes(state.b, state.c);
-            state.mem[bc as usize] = state.a;
-        }
-        Opcode::INXB => (state.b, state.c) = split_bytes(join_bytes(state.b, state.c) + 1),
-        Opcode::INRB => {
-            // check_flag_ac(state.b, state.b + 1, state);
-            state.b += 1;
-            check_flag_z(state.b, state);
-            check_flag_s(state.b, state);
-            check_flag_p(state.b, state);
-        }
-        Opcode::DCRB => {
-            // check_flag_ac(state.b, state.b - 1, state);
-            state.b -= 1;
-            check_flag_z(state.b, state);
-            check_flag_s(state.b, state);
-            check_flag_p(state.b, state);
-        }
-        Opcode::MVIB => {
-            state.b = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::RLC => {
-            check_flag_cy8((state.a as u16) << 1, state);
-            state.a = state.a.rotate_left(1);
-        }
-        Opcode::DADB => {
-            let hl = join_bytes(state.h, state.l);
-            let bc = join_bytes(state.b, state.c);
-            check_flag_cy16(hl as u32 + bc as u32, state);
-            (state.h, state.l) = split_bytes(hl + bc);
-        }
-        Opcode::LDAXB => {
-            let bc = join_bytes(state.b, state.c);
-            state.a = state.mem[bc as usize];
-        }
-        Opcode::DCXB => (state.b, state.c) = split_bytes(join_bytes(state.b, state.c) - 1),
-        Opcode::INRC => {
-            // check_flag_ac(state.c, state.c + 1, state);
-            state.c += 1;
-            check_flag_z(state.c, state);
-            check_flag_s(state.c, state);
-            check_flag_p(state.c, state);
-        }
-        Opcode::DCRC => {
-            // check_flag_ac(state.c, state.c - 1, state);
-            state.c -= 1;
-            check_flag_z(state.c, state);
-            check_flag_s(state.c, state);
-            check_flag_p(state.c, state);
-        }
-        Opcode::MVIC => {
-            state.c = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::RRC => {
-            check_flag_cy8((state.a as u16).rotate_right(1), state);
-            state.a = state.a.rotate_right(1);
-        }
-        Opcode::LXID => {
-            state.d = state.mem[_pc + 2];
-            state.e = state.mem[_pc + 1];
-            state.pc += 2;
-        }
-        Opcode::STAXD => {
-            let de = join_bytes(state.d, state.e);
-            state.mem[de as usize] = state.a;
-        }
-        Opcode::INXD => (state.d, state.e) = split_bytes(join_bytes(state.d, state.e) + 1),
-        Opcode::INRD => {
-            // check_flag_ac(state.b, state.b + 1, state);
-            state.d += 1;
-            check_flag_z(state.d, state);
-            check_flag_s(state.d, state);
-            check_flag_p(state.d, state);
-        }
-        Opcode::DCRD => {
-            // check_flag_ac(state.b, state.b - 1, state);
-            state.d -= 1;
-            check_flag_z(state.d, state);
-            check_flag_s(state.d, state);
-            check_flag_p(state.d, state);
-        }
-        Opcode::MVID => {
-            state.d = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::RAL => {
-            let prev = state.flags.get(FlagType::CY);
-            check_flag_cy8((state.a as u16) << 1, state);
-            state.a = state.a << 1;
-            state.a |= prev;
-        }
-        Opcode::DADD => {
-            let hl = join_bytes(state.h, state.l);
-            let de = join_bytes(state.d, state.e);
-            check_flag_cy16(hl as u32 + de as u32, state);
-            (state.h, state.l) = split_bytes(hl + de);
-        }
-        Opcode::LDAXD => {
-            let de = join_bytes(state.d, state.e);
-            state.a = state.mem[de as usize];
-        }
-        Opcode::DCXD => (state.d, state.e) = split_bytes(join_bytes(state.d, state.e) - 1),
-        Opcode::INRE => {
-            // check_flag_ac(state.c, state.c + 1, state);
-            state.e += 1;
-            check_flag_z(state.e, state);
-            check_flag_s(state.e, state);
-            check_flag_p(state.e, state);
-        }
-        Opcode::DCRE => {
-            // check_flag_ac(state.c, state.c - 1, state);
-            state.e -= 1;
-            check_flag_z(state.e, state);
-            check_flag_s(state.e, state);
-            check_flag_p(state.e, state);
-        }
-        Opcode::MVIE => {
-            state.e = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::RAR => {
-            check_flag_cy8((state.a as u16).rotate_right(1), state);
-            state.a = state.a >> 1;
-            state.a |= (state.a << 1) & 0x80;
-        }
-        Opcode::LXIH => {
-            state.h = state.mem[_pc + 2];
-            state.l = state.mem[_pc + 1];
-            state.pc += 2;
-        }
-        Opcode::SHLD => {
-            let adr = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
-            state.mem[adr as usize] = state.l;
-            state.mem[(adr + 1) as usize] = state.h;
-            state.pc += 2;
-        }
-        Opcode::INXH => (state.h, state.l) = split_bytes(join_bytes(state.h, state.l) + 1),
-        Opcode::INRH => {
-            // check_flag_ac(state.h, state.h + 1, state);
-            state.h += 1;
-            check_flag_z(state.h, state);
-            check_flag_s(state.h, state);
-            check_flag_p(state.h, state);
-        }
-        Opcode::DCRH => {
-            // check_flag_ac(state.h, state.h - 1, state);
-            state.h -= 1;
-            check_flag_z(state.h, state);
-            check_flag_s(state.h, state);
-            check_flag_p(state.h, state);
-        }
-        Opcode::MVIH => {
-            state.h = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::DADH => {
-            let hl = join_bytes(state.h, state.l);
-            check_flag_cy16((hl as u32) * 2, state);
-            (state.h, state.l) = split_bytes(2 * hl);
-        }
-        Opcode::LHLD => {
-            let adr = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
-            state.l = state.mem[adr as usize];
-            state.h = state.mem[(adr + 1) as usize];
-            state.pc += 2;
-        }
-        Opcode::DCXH => (state.h, state.l) = split_bytes(join_bytes(state.h, state.l) - 1),
-        Opcode::INRL => {
-            // check_flag_ac(state.l, state.l + 1, state);
-            state.l += 1;
-            check_flag_z(state.l, state);
-            check_flag_s(state.l, state);
-            check_flag_p(state.l, state);
-        }
-        Opcode::DCRL => {
-            // check_flag_ac(state.l, state.l - 1, state);
-            state.l -= 1;
-            check_flag_z(state.l, state);
-            check_flag_s(state.l, state);
-            check_flag_p(state.l, state);
-        }
-        Opcode::MVIL => {
-            state.l = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::CMA => {
-            state.a = !state.a;
-        }
-        Opcode::LXISP => {
-            state.sp = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
-            state.pc += 2;
-        }
-        Opcode::STA => {
-            let adr = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
-            state.mem[adr as usize] = state.a;
-            state.pc += 2;
-        }
-        Opcode::INXSP => state.sp += 1,
-        Opcode::INRM => {
-            // check_flag_ac(state.h, state.h + 1, state);
-            let adr = join_bytes(state.h, state.l) as usize;
-            state.mem[adr] += 1;
-            check_flag_z(state.mem[adr], state);
-            check_flag_s(state.mem[adr], state);
-            check_flag_p(state.mem[adr], state);
-        }
-        Opcode::DCRM => {
-            // check_flag_ac(state.h, state.h - 1, state);
-            let adr = join_bytes(state.h, state.l) as usize;
-            state.mem[adr] -= 1;
-            check_flag_z(state.mem[adr], state);
-            check_flag_s(state.mem[adr], state);
-            check_flag_p(state.mem[adr], state);
-        }
-        Opcode::MVIM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            state.mem[adr] = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::STC => state.flags.set(FlagType::CY),
-        Opcode::DADSP => {
-            let hl = join_bytes(state.h, state.l);
-            check_flag_cy16((hl + state.sp) as u32, state);
-            (state.h, state.l) = split_bytes(hl + state.sp);
-        }
-        Opcode::LDA => {
-            let adr = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]);
-            state.a = state.mem[adr as usize];
-            state.pc += 2;
-        }
-        Opcode::DCXSP => state.sp -= 1,
-        Opcode::INRA => {
-            // check_flag_ac(state.a, state.a + 1, state);
-            state.a += 1;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::DCRA => {
-            // check_flag_ac(state.a, state.a - 1, state);
-            state.a -= 1;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::MVIA => {
-            state.a = state.mem[_pc + 1];
-            state.pc += 1;
-        }
-        Opcode::CMC => match state.flags.get(FlagType::CY) == 0 {
-            true => state.flags.set(FlagType::CY),
-            false => state.flags.unset(FlagType::CY),
-        },
-        Opcode::MOVBB => state.b = state.b,
-        Opcode::MOVBC => state.b = state.c,
-        Opcode::MOVBD => state.b = state.d,
-        Opcode::MOVBE => state.b = state.e,
-        Opcode::MOVBH => state.b = state.h,
-        Opcode::MOVBL => state.b = state.l,
-        Opcode::MOVBM => state.b = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVBA => state.b = state.a,
-
-        Opcode::MOVCB => state.c = state.b,
-        Opcode::MOVCC => state.c = state.c,
-        Opcode::MOVCD => state.c = state.d,
-        Opcode::MOVCE => state.c = state.e,
-        Opcode::MOVCH => state.c = state.h,
-        Opcode::MOVCL => state.c = state.l,
-        Opcode::MOVCM => state.c = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVCA => state.c = state.a,
-
-        Opcode::MOVDB => state.d = state.b,
-        Opcode::MOVDC => state.d = state.c,
-        Opcode::MOVDD => state.d = state.d,
-        Opcode::MOVDE => state.d = state.e,
-        Opcode::MOVDH => state.d = state.h,
-        Opcode::MOVDL => state.d = state.l,
-        Opcode::MOVDM => state.d = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVDA => state.d = state.a,
-
-        Opcode::MOVEC => state.e = state.c,
-        Opcode::MOVEB => state.e = state.b,
-        Opcode::MOVED => state.e = state.d,
-        Opcode::MOVEE => state.e = state.e,
-        Opcode::MOVEH => state.e = state.h,
-        Opcode::MOVEL => state.e = state.l,
-        Opcode::MOVEM => state.e = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVEA => state.e = state.a,
-
-        Opcode::MOVHB => state.h = state.b,
-        Opcode::MOVHC => state.h = state.c,
-        Opcode::MOVHD => state.h = state.d,
-        Opcode::MOVHE => state.h = state.e,
-        Opcode::MOVHH => state.h = state.h,
-        Opcode::MOVHL => state.h = state.l,
-        Opcode::MOVHM => state.h = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVHA => state.h = state.a,
-
-        Opcode::MOVLB => state.l = state.b,
-        Opcode::MOVLC => state.l = state.c,
-        Opcode::MOVLD => state.l = state.d,
-        Opcode::MOVLE => state.l = state.e,
-        Opcode::MOVLH => state.l = state.h,
-        Opcode::MOVLL => state.l = state.l,
-        Opcode::MOVLM => state.l = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVLA => state.l = state.a,
-
-        Opcode::MOVMB => state.mem[join_bytes(state.h, state.l) as usize] = state.b,
-        Opcode::MOVMC => state.mem[join_bytes(state.h, state.l) as usize] = state.c,
-        Opcode::MOVMD => state.mem[join_bytes(state.h, state.l) as usize] = state.d,
-        Opcode::MOVME => state.mem[join_bytes(state.h, state.l) as usize] = state.e,
-        Opcode::MOVMH => state.mem[join_bytes(state.h, state.l) as usize] = state.h,
-        Opcode::MOVML => state.mem[join_bytes(state.h, state.l) as usize] = state.l,
-        Opcode::HLT => {
-            println!("Halted");
-            process::exit(-2)
-        }
-        Opcode::MOVMA => state.mem[join_bytes(state.h, state.l) as usize] = state.a,
-
-        Opcode::MOVAB => state.a = state.b,
-        Opcode::MOVAC => state.a = state.c,
-        Opcode::MOVAD => state.a = state.d,
-        Opcode::MOVAE => state.a = state.e,
-        Opcode::MOVAH => state.a = state.h,
-        Opcode::MOVAL => state.a = state.l,
-        Opcode::MOVAM => state.a = state.mem[join_bytes(state.h, state.l) as usize],
-        Opcode::MOVAA => state.a = state.a,
-
-        Opcode::ADDB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.b as u16), state);
-            state.a += state.b;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.c as u16), state);
-            state.a += state.c;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.d as u16), state);
-            state.a += state.d;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.e as u16), state);
-            state.a += state.e;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.h as u16), state);
-            state.a += state.h;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.l as u16), state);
-            state.a += state.l;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.mem[adr] as u16), state);
-            state.a += state.mem[adr];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADDA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) + (state.a as u16), state);
-            state.a += state.a;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::ADCB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.b as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.b + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.c as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.c + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.d as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.d + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.e as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.e + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.h as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.h + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.l as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.l + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.mem[adr] as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.mem[adr] + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ADCA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) + (state.a as u16) + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.a + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::SUBB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.b as u16), state);
-            state.a -= state.b;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.c as u16), state);
-            state.a -= state.c;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.d as u16), state);
-            state.a -= state.d;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.e as u16), state);
-            state.a -= state.e;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.h as u16), state);
-            state.a -= state.h;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.l as u16), state);
-            state.a -= state.l;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.mem[adr] as u16), state);
-            state.a -= state.mem[adr];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SUBA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.a as u16), state);
-            state.a -= state.a;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::SBBB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.b as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.b + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.c as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.c + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.d as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.d + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.e as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.e + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.h as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.h + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.l as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.l + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.mem[adr] as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.mem[adr] + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::SBBA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8(
-                (state.a as u16) - (state.a as u16) - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.a + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::ANAB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.b as u16), state);
-            state.a &= state.b;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.c as u16), state);
-            state.a &= state.c;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.d as u16), state);
-            state.a &= state.d;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.e as u16), state);
-            state.a &= state.e;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.h as u16), state);
-            state.a &= state.h;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.l as u16), state);
-            state.a &= state.l;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.mem[adr] as u16), state);
-            state.a &= state.mem[adr];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ANAA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) & (state.a as u16), state);
-            state.a &= state.a;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::XRAB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.b as u16), state);
-            state.a ^= state.b;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.c as u16), state);
-            state.a ^= state.c;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.d as u16), state);
-            state.a ^= state.d;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.e as u16), state);
-            state.a ^= state.e;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.h as u16), state);
-            state.a ^= state.h;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.l as u16), state);
-            state.a ^= state.l;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.mem[adr] as u16), state);
-            state.a ^= state.mem[adr];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::XRAA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) ^ (state.a as u16), state);
-            state.a ^= state.a;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::ORAB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.b as u16), state);
-            state.a |= state.b;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.c as u16), state);
-            state.a |= state.c;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.d as u16), state);
-            state.a |= state.d;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.e as u16), state);
-            state.a |= state.e;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.h as u16), state);
-            state.a |= state.h;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.l as u16), state);
-            state.a |= state.l;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.mem[adr] as u16), state);
-            state.a |= state.mem[adr];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-        Opcode::ORAA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) | (state.a as u16), state);
-            state.a |= state.a;
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-        }
-
-        Opcode::CMPB => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.b as u16), state);
-            check_flag_z(state.a - state.b, state);
-            check_flag_s(state.a - state.b, state);
-            check_flag_p(state.a - state.b, state);
-        }
-        Opcode::CMPC => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.c as u16), state);
-            check_flag_z(state.a - state.c, state);
-            check_flag_s(state.a - state.c, state);
-            check_flag_p(state.a - state.c, state);
-        }
-        Opcode::CMPD => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.d as u16), state);
-            check_flag_z(state.a - state.d, state);
-            check_flag_s(state.a - state.d, state);
-            check_flag_p(state.a - state.d, state);
-        }
-        Opcode::CMPE => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.e as u16), state);
-            check_flag_z(state.a - state.e, state);
-            check_flag_s(state.a - state.e, state);
-            check_flag_p(state.a - state.e, state);
-        }
-        Opcode::CMPH => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.h as u16), state);
-            check_flag_z(state.a - state.h, state);
-            check_flag_s(state.a - state.h, state);
-            check_flag_p(state.a - state.h, state);
-        }
-        Opcode::CMPL => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.l as u16), state);
-            check_flag_z(state.a - state.l, state);
-            check_flag_s(state.a - state.l, state);
-            check_flag_p(state.a - state.l, state);
-        }
-        Opcode::CMPM => {
-            let adr = join_bytes(state.h, state.l) as usize;
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.mem[adr] as u16), state);
-            check_flag_z(state.a - state.mem[adr], state);
-            check_flag_s(state.a - state.mem[adr], state);
-            check_flag_p(state.a - state.mem[adr], state);
-        }
-        Opcode::CMPA => {
-            // check_flag_ac(reg, state)
-            check_flag_cy8((state.a as u16) - (state.a as u16), state);
-            check_flag_z(state.a - state.a, state);
-            check_flag_s(state.a - state.a, state);
-            check_flag_p(state.a - state.a, state);
-        }
-
-        Opcode::RNZ => {
-            if state.flags.get(FlagType::Z) != 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
+impl State {
+    pub fn run_op(&mut self) {
+        let _pc = self.pc as usize;
+        let opcode = self.mem[_pc];
+    
+        match Opcode::convert(opcode) {
+            Opcode::NOP => (),
+            Opcode::LXIB => {
+                self.b = self.mem[_pc + 2];
+                self.c = self.mem[_pc + 1];
+                self.pc += 2;
+            }
+            Opcode::STAXB => {
+                let bc = join_bytes(self.b, self.c);
+                self.mem[bc as usize] = self.a;
+            }
+            Opcode::INXB => (self.b, self.c) = split_bytes(join_bytes(self.b, self.c) + 1),
+            Opcode::INRB => {
+                // check_flag_ac(self.b, self.b + 1, self);
+                self.b += 1;
+                check_flag_z(self.b, self);
+                check_flag_s(self.b, self);
+                check_flag_p(self.b, self);
+            }
+            Opcode::DCRB => {
+                // check_flag_ac(self.b, self.b - 1, self);
+                self.b -= 1;
+                check_flag_z(self.b, self);
+                check_flag_s(self.b, self);
+                check_flag_p(self.b, self);
+            }
+            Opcode::MVIB => {
+                self.b = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::RLC => {
+                check_flag_cy8((self.a as u16) << 1, self);
+                self.a = self.a.rotate_left(1);
+            }
+            Opcode::DADB => {
+                let hl = join_bytes(self.h, self.l);
+                let bc = join_bytes(self.b, self.c);
+                check_flag_cy16(hl as u32 + bc as u32, self);
+                (self.h, self.l) = split_bytes(hl + bc);
+            }
+            Opcode::LDAXB => {
+                let bc = join_bytes(self.b, self.c);
+                self.a = self.mem[bc as usize];
+            }
+            Opcode::DCXB => (self.b, self.c) = split_bytes(join_bytes(self.b, self.c) - 1),
+            Opcode::INRC => {
+                // check_flag_ac(self.c, self.c + 1, self);
+                self.c += 1;
+                check_flag_z(self.c, self);
+                check_flag_s(self.c, self);
+                check_flag_p(self.c, self);
+            }
+            Opcode::DCRC => {
+                // check_flag_ac(self.c, self.c - 1, self);
+                self.c -= 1;
+                check_flag_z(self.c, self);
+                check_flag_s(self.c, self);
+                check_flag_p(self.c, self);
+            }
+            Opcode::MVIC => {
+                self.c = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::RRC => {
+                check_flag_cy8((self.a as u16).rotate_right(1), self);
+                self.a = self.a.rotate_right(1);
+            }
+            Opcode::LXID => {
+                self.d = self.mem[_pc + 2];
+                self.e = self.mem[_pc + 1];
+                self.pc += 2;
+            }
+            Opcode::STAXD => {
+                let de = join_bytes(self.d, self.e);
+                self.mem[de as usize] = self.a;
+            }
+            Opcode::INXD => (self.d, self.e) = split_bytes(join_bytes(self.d, self.e) + 1),
+            Opcode::INRD => {
+                // check_flag_ac(self.b, self.b + 1, self);
+                self.d += 1;
+                check_flag_z(self.d, self);
+                check_flag_s(self.d, self);
+                check_flag_p(self.d, self);
+            }
+            Opcode::DCRD => {
+                // check_flag_ac(self.b, self.b - 1, self);
+                self.d -= 1;
+                check_flag_z(self.d, self);
+                check_flag_s(self.d, self);
+                check_flag_p(self.d, self);
+            }
+            Opcode::MVID => {
+                self.d = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::RAL => {
+                let prev = self.flags.get(FlagType::CY);
+                check_flag_cy8((self.a as u16) << 1, self);
+                self.a = self.a << 1;
+                self.a |= prev;
+            }
+            Opcode::DADD => {
+                let hl = join_bytes(self.h, self.l);
+                let de = join_bytes(self.d, self.e);
+                check_flag_cy16(hl as u32 + de as u32, self);
+                (self.h, self.l) = split_bytes(hl + de);
+            }
+            Opcode::LDAXD => {
+                let de = join_bytes(self.d, self.e);
+                self.a = self.mem[de as usize];
+            }
+            Opcode::DCXD => (self.d, self.e) = split_bytes(join_bytes(self.d, self.e) - 1),
+            Opcode::INRE => {
+                // check_flag_ac(self.c, self.c + 1, self);
+                self.e += 1;
+                check_flag_z(self.e, self);
+                check_flag_s(self.e, self);
+                check_flag_p(self.e, self);
+            }
+            Opcode::DCRE => {
+                // check_flag_ac(self.c, self.c - 1, self);
+                self.e -= 1;
+                check_flag_z(self.e, self);
+                check_flag_s(self.e, self);
+                check_flag_p(self.e, self);
+            }
+            Opcode::MVIE => {
+                self.e = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::RAR => {
+                check_flag_cy8((self.a as u16).rotate_right(1), self);
+                self.a = self.a >> 1;
+                self.a |= (self.a << 1) & 0x80;
+            }
+            Opcode::LXIH => {
+                self.h = self.mem[_pc + 2];
+                self.l = self.mem[_pc + 1];
+                self.pc += 2;
+            }
+            Opcode::SHLD => {
+                let adr = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]);
+                self.mem[adr as usize] = self.l;
+                self.mem[(adr + 1) as usize] = self.h;
+                self.pc += 2;
+            }
+            Opcode::INXH => (self.h, self.l) = split_bytes(join_bytes(self.h, self.l) + 1),
+            Opcode::INRH => {
+                // check_flag_ac(self.h, self.h + 1, self);
+                self.h += 1;
+                check_flag_z(self.h, self);
+                check_flag_s(self.h, self);
+                check_flag_p(self.h, self);
+            }
+            Opcode::DCRH => {
+                // check_flag_ac(self.h, self.h - 1, self);
+                self.h -= 1;
+                check_flag_z(self.h, self);
+                check_flag_s(self.h, self);
+                check_flag_p(self.h, self);
+            }
+            Opcode::MVIH => {
+                self.h = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::DADH => {
+                let hl = join_bytes(self.h, self.l);
+                check_flag_cy16((hl as u32) * 2, self);
+                (self.h, self.l) = split_bytes(2 * hl);
+            }
+            Opcode::LHLD => {
+                let adr = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]);
+                self.l = self.mem[adr as usize];
+                self.h = self.mem[(adr + 1) as usize];
+                self.pc += 2;
+            }
+            Opcode::DCXH => (self.h, self.l) = split_bytes(join_bytes(self.h, self.l) - 1),
+            Opcode::INRL => {
+                // check_flag_ac(self.l, self.l + 1, self);
+                self.l += 1;
+                check_flag_z(self.l, self);
+                check_flag_s(self.l, self);
+                check_flag_p(self.l, self);
+            }
+            Opcode::DCRL => {
+                // check_flag_ac(self.l, self.l - 1, self);
+                self.l -= 1;
+                check_flag_z(self.l, self);
+                check_flag_s(self.l, self);
+                check_flag_p(self.l, self);
+            }
+            Opcode::MVIL => {
+                self.l = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::CMA => {
+                self.a = !self.a;
+            }
+            Opcode::LXISP => {
+                self.sp = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]);
+                self.pc += 2;
+            }
+            Opcode::STA => {
+                let adr = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]);
+                self.mem[adr as usize] = self.a;
+                self.pc += 2;
+            }
+            Opcode::INXSP => self.sp += 1,
+            Opcode::INRM => {
+                // check_flag_ac(self.h, self.h + 1, self);
+                let adr = join_bytes(self.h, self.l) as usize;
+                self.mem[adr] += 1;
+                check_flag_z(self.mem[adr], self);
+                check_flag_s(self.mem[adr], self);
+                check_flag_p(self.mem[adr], self);
+            }
+            Opcode::DCRM => {
+                // check_flag_ac(self.h, self.h - 1, self);
+                let adr = join_bytes(self.h, self.l) as usize;
+                self.mem[adr] -= 1;
+                check_flag_z(self.mem[adr], self);
+                check_flag_s(self.mem[adr], self);
+                check_flag_p(self.mem[adr], self);
+            }
+            Opcode::MVIM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                self.mem[adr] = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::STC => self.flags.set(FlagType::CY),
+            Opcode::DADSP => {
+                let hl = join_bytes(self.h, self.l);
+                check_flag_cy16((hl + self.sp) as u32, self);
+                (self.h, self.l) = split_bytes(hl + self.sp);
+            }
+            Opcode::LDA => {
+                let adr = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]);
+                self.a = self.mem[adr as usize];
+                self.pc += 2;
+            }
+            Opcode::DCXSP => self.sp -= 1,
+            Opcode::INRA => {
+                // check_flag_ac(self.a, self.a + 1, self);
+                self.a += 1;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::DCRA => {
+                // check_flag_ac(self.a, self.a - 1, self);
+                self.a -= 1;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::MVIA => {
+                self.a = self.mem[_pc + 1];
+                self.pc += 1;
+            }
+            Opcode::CMC => match self.flags.get(FlagType::CY) == 0 {
+                true => self.flags.set(FlagType::CY),
+                false => self.flags.unset(FlagType::CY),
+            },
+            Opcode::MOVBB => self.b = self.b,
+            Opcode::MOVBC => self.b = self.c,
+            Opcode::MOVBD => self.b = self.d,
+            Opcode::MOVBE => self.b = self.e,
+            Opcode::MOVBH => self.b = self.h,
+            Opcode::MOVBL => self.b = self.l,
+            Opcode::MOVBM => self.b = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVBA => self.b = self.a,
+    
+            Opcode::MOVCB => self.c = self.b,
+            Opcode::MOVCC => self.c = self.c,
+            Opcode::MOVCD => self.c = self.d,
+            Opcode::MOVCE => self.c = self.e,
+            Opcode::MOVCH => self.c = self.h,
+            Opcode::MOVCL => self.c = self.l,
+            Opcode::MOVCM => self.c = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVCA => self.c = self.a,
+    
+            Opcode::MOVDB => self.d = self.b,
+            Opcode::MOVDC => self.d = self.c,
+            Opcode::MOVDD => self.d = self.d,
+            Opcode::MOVDE => self.d = self.e,
+            Opcode::MOVDH => self.d = self.h,
+            Opcode::MOVDL => self.d = self.l,
+            Opcode::MOVDM => self.d = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVDA => self.d = self.a,
+    
+            Opcode::MOVEC => self.e = self.c,
+            Opcode::MOVEB => self.e = self.b,
+            Opcode::MOVED => self.e = self.d,
+            Opcode::MOVEE => self.e = self.e,
+            Opcode::MOVEH => self.e = self.h,
+            Opcode::MOVEL => self.e = self.l,
+            Opcode::MOVEM => self.e = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVEA => self.e = self.a,
+    
+            Opcode::MOVHB => self.h = self.b,
+            Opcode::MOVHC => self.h = self.c,
+            Opcode::MOVHD => self.h = self.d,
+            Opcode::MOVHE => self.h = self.e,
+            Opcode::MOVHH => self.h = self.h,
+            Opcode::MOVHL => self.h = self.l,
+            Opcode::MOVHM => self.h = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVHA => self.h = self.a,
+    
+            Opcode::MOVLB => self.l = self.b,
+            Opcode::MOVLC => self.l = self.c,
+            Opcode::MOVLD => self.l = self.d,
+            Opcode::MOVLE => self.l = self.e,
+            Opcode::MOVLH => self.l = self.h,
+            Opcode::MOVLL => self.l = self.l,
+            Opcode::MOVLM => self.l = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVLA => self.l = self.a,
+    
+            Opcode::MOVMB => self.mem[join_bytes(self.h, self.l) as usize] = self.b,
+            Opcode::MOVMC => self.mem[join_bytes(self.h, self.l) as usize] = self.c,
+            Opcode::MOVMD => self.mem[join_bytes(self.h, self.l) as usize] = self.d,
+            Opcode::MOVME => self.mem[join_bytes(self.h, self.l) as usize] = self.e,
+            Opcode::MOVMH => self.mem[join_bytes(self.h, self.l) as usize] = self.h,
+            Opcode::MOVML => self.mem[join_bytes(self.h, self.l) as usize] = self.l,
+            Opcode::HLT => {
+                println!("Halted");
+                process::exit(-2)
+            }
+            Opcode::MOVMA => self.mem[join_bytes(self.h, self.l) as usize] = self.a,
+    
+            Opcode::MOVAB => self.a = self.b,
+            Opcode::MOVAC => self.a = self.c,
+            Opcode::MOVAD => self.a = self.d,
+            Opcode::MOVAE => self.a = self.e,
+            Opcode::MOVAH => self.a = self.h,
+            Opcode::MOVAL => self.a = self.l,
+            Opcode::MOVAM => self.a = self.mem[join_bytes(self.h, self.l) as usize],
+            Opcode::MOVAA => self.a = self.a,
+    
+            Opcode::ADDB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.b as u16), self);
+                self.a += self.b;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.c as u16), self);
+                self.a += self.c;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.d as u16), self);
+                self.a += self.d;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.e as u16), self);
+                self.a += self.e;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.h as u16), self);
+                self.a += self.h;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.l as u16), self);
+                self.a += self.l;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.mem[adr] as u16), self);
+                self.a += self.mem[adr];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADDA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) + (self.a as u16), self);
+                self.a += self.a;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::ADCB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.b as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.b + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.c as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.c + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.d as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.d + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.e as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.e + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.h as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.h + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.l as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.l + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.mem[adr] as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.mem[adr] + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ADCA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) + (self.a as u16) + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.a + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::SUBB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.b as u16), self);
+                self.a -= self.b;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.c as u16), self);
+                self.a -= self.c;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.d as u16), self);
+                self.a -= self.d;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.e as u16), self);
+                self.a -= self.e;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.h as u16), self);
+                self.a -= self.h;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.l as u16), self);
+                self.a -= self.l;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.mem[adr] as u16), self);
+                self.a -= self.mem[adr];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SUBA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.a as u16), self);
+                self.a -= self.a;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::SBBB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.b as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.b + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.c as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.c + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.d as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.d + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.e as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.e + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.h as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.h + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.l as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.l + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.mem[adr] as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.mem[adr] + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::SBBA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8(
+                    (self.a as u16) - (self.a as u16) - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.a + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::ANAB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.b as u16), self);
+                self.a &= self.b;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.c as u16), self);
+                self.a &= self.c;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.d as u16), self);
+                self.a &= self.d;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.e as u16), self);
+                self.a &= self.e;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.h as u16), self);
+                self.a &= self.h;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.l as u16), self);
+                self.a &= self.l;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.mem[adr] as u16), self);
+                self.a &= self.mem[adr];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ANAA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) & (self.a as u16), self);
+                self.a &= self.a;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::XRAB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.b as u16), self);
+                self.a ^= self.b;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.c as u16), self);
+                self.a ^= self.c;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.d as u16), self);
+                self.a ^= self.d;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.e as u16), self);
+                self.a ^= self.e;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.h as u16), self);
+                self.a ^= self.h;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.l as u16), self);
+                self.a ^= self.l;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.mem[adr] as u16), self);
+                self.a ^= self.mem[adr];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::XRAA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) ^ (self.a as u16), self);
+                self.a ^= self.a;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::ORAB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.b as u16), self);
+                self.a |= self.b;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.c as u16), self);
+                self.a |= self.c;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.d as u16), self);
+                self.a |= self.d;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.e as u16), self);
+                self.a |= self.e;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.h as u16), self);
+                self.a |= self.h;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.l as u16), self);
+                self.a |= self.l;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.mem[adr] as u16), self);
+                self.a |= self.mem[adr];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+            Opcode::ORAA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) | (self.a as u16), self);
+                self.a |= self.a;
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+            }
+    
+            Opcode::CMPB => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.b as u16), self);
+                check_flag_z(self.a - self.b, self);
+                check_flag_s(self.a - self.b, self);
+                check_flag_p(self.a - self.b, self);
+            }
+            Opcode::CMPC => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.c as u16), self);
+                check_flag_z(self.a - self.c, self);
+                check_flag_s(self.a - self.c, self);
+                check_flag_p(self.a - self.c, self);
+            }
+            Opcode::CMPD => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.d as u16), self);
+                check_flag_z(self.a - self.d, self);
+                check_flag_s(self.a - self.d, self);
+                check_flag_p(self.a - self.d, self);
+            }
+            Opcode::CMPE => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.e as u16), self);
+                check_flag_z(self.a - self.e, self);
+                check_flag_s(self.a - self.e, self);
+                check_flag_p(self.a - self.e, self);
+            }
+            Opcode::CMPH => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.h as u16), self);
+                check_flag_z(self.a - self.h, self);
+                check_flag_s(self.a - self.h, self);
+                check_flag_p(self.a - self.h, self);
+            }
+            Opcode::CMPL => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.l as u16), self);
+                check_flag_z(self.a - self.l, self);
+                check_flag_s(self.a - self.l, self);
+                check_flag_p(self.a - self.l, self);
+            }
+            Opcode::CMPM => {
+                let adr = join_bytes(self.h, self.l) as usize;
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.mem[adr] as u16), self);
+                check_flag_z(self.a - self.mem[adr], self);
+                check_flag_s(self.a - self.mem[adr], self);
+                check_flag_p(self.a - self.mem[adr], self);
+            }
+            Opcode::CMPA => {
+                // check_flag_ac(reg, self)
+                check_flag_cy8((self.a as u16) - (self.a as u16), self);
+                check_flag_z(self.a - self.a, self);
+                check_flag_s(self.a - self.a, self);
+                check_flag_p(self.a - self.a, self);
+            }
+    
+            Opcode::RNZ => {
+                if self.flags.get(FlagType::Z) != 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
+            }
+            Opcode::POPB => {
+                self.c = self.mem[self.sp as usize];
+                self.b = self.mem[self.sp as usize + 1];
+                self.sp += 2;
+            }
+            Opcode::JNZ => {
+                if self.flags.get(FlagType::Z) != 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::JMP => {
+                self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+            }
+            Opcode::CNZ => {
+                if self.flags.get(FlagType::Z) != 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::PUSHB => {
+                self.mem[self.sp as usize - 1] = self.b;
+                self.mem[self.sp as usize - 2] = self.c;
+                self.sp -= 2;
+            }
+            Opcode::ADI => {
+                check_flag_cy8((self.a as u16) + (self.mem[_pc + 1] as u16), self);
+                self.a += self.mem[_pc + 1];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
+            }
+            Opcode::RST0 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0xff; // 0x00 - 1 due to end pc increment
+            }
+    
+            Opcode::RZ => {
+                if self.flags.get(FlagType::Z) == 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
+            }
+            Opcode::RET => {
+                self.pc = join_bytes(
+                    self.mem[self.sp as usize + 1],
+                    self.mem[self.sp as usize],
                 ) - 1;
-                state.sp += 2;
+                self.sp += 2;
             }
-        }
-        Opcode::POPB => {
-            state.c = state.mem[state.sp as usize];
-            state.b = state.mem[state.sp as usize + 1];
-            state.sp += 2;
-        }
-        Opcode::JNZ => {
-            if state.flags.get(FlagType::Z) != 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::JZ => {
+                if self.flags.get(FlagType::Z) == 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::JMP => {
-            state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-        }
-        Opcode::CNZ => {
-            if state.flags.get(FlagType::Z) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::CZ => {
+                if self.flags.get(FlagType::Z) == 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::PUSHB => {
-            state.mem[state.sp as usize - 1] = state.b;
-            state.mem[state.sp as usize - 2] = state.c;
-            state.sp -= 2;
-        }
-        Opcode::ADI => {
-            check_flag_cy8((state.a as u16) + (state.mem[_pc + 1] as u16), state);
-            state.a += state.mem[_pc + 1];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST0 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0xff; // 0x00 - 1 due to end pc increment
-        }
-
-        Opcode::RZ => {
-            if state.flags.get(FlagType::Z) == 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+            Opcode::CALL => {
+                let (pchi, pclo) = split_bytes(self.pc + 3);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
             }
-        }
-        Opcode::RET => {
-            state.pc = join_bytes(
-                state.mem[state.sp as usize + 1],
-                state.mem[state.sp as usize],
-            ) - 1;
-            state.sp += 2;
-        }
-        Opcode::JZ => {
-            if state.flags.get(FlagType::Z) == 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::ACI => {
+                check_flag_cy8(
+                    (self.a as u16)
+                        + (self.mem[_pc + 1] as u16)
+                        + (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a += self.mem[_pc + 1] + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
             }
-        }
-        Opcode::CZ => {
-            if state.flags.get(FlagType::Z) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::RST1 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x08 - 1;
             }
-        }
-        Opcode::CALL => {
-            let (pchi, pclo) = split_bytes(state.pc + 3);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-        }
-        Opcode::ACI => {
-            check_flag_cy8(
-                (state.a as u16)
-                    + (state.mem[_pc + 1] as u16)
-                    + (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a += state.mem[_pc + 1] + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST1 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x08 - 1;
-        }
-
-        Opcode::RNC => {
-            if state.flags.get(FlagType::CY) != 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+    
+            Opcode::RNC => {
+                if self.flags.get(FlagType::CY) != 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
             }
-        }
-        Opcode::POPD => {
-            state.e = state.mem[state.sp as usize];
-            state.d = state.mem[state.sp as usize + 1];
-            state.sp += 2;
-        }
-        Opcode::JNC => {
-            if state.flags.get(FlagType::CY) != 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::POPD => {
+                self.e = self.mem[self.sp as usize];
+                self.d = self.mem[self.sp as usize + 1];
+                self.sp += 2;
             }
-        }
-        Opcode::OUT => {
-            state.pc += 1;
-        },
-        Opcode::CNC => {
-            if state.flags.get(FlagType::CY) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::JNC => {
+                if self.flags.get(FlagType::CY) != 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::PUSHD => {
-            state.mem[state.sp as usize - 1] = state.d;
-            state.mem[state.sp as usize - 2] = state.e;
-            state.sp -= 2;
-        }
-        Opcode::SUI => {
-            check_flag_cy8((state.a as u16) - (state.mem[_pc + 1] as u16), state);
-            state.a -= state.mem[_pc + 1];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST2 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x10 - 1;
-        }
-
-        Opcode::RC => {
-            if state.flags.get(FlagType::CY) == 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+            Opcode::OUT => {
+                self.pc += 1;
+            },
+            Opcode::CNC => {
+                if self.flags.get(FlagType::CY) != 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::JC => {
-            if state.flags.get(FlagType::CY) == 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::PUSHD => {
+                self.mem[self.sp as usize - 1] = self.d;
+                self.mem[self.sp as usize - 2] = self.e;
+                self.sp -= 2;
             }
-        }
-        Opcode::CC => {
-            if state.flags.get(FlagType::CY) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::SUI => {
+                check_flag_cy8((self.a as u16) - (self.mem[_pc + 1] as u16), self);
+                self.a -= self.mem[_pc + 1];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
             }
-        }
-        Opcode::SBI => {
-            check_flag_cy8(
-                (state.a as u16)
-                    - (state.mem[_pc + 1] as u16)
-                    - (state.flags.get(FlagType::CY) as u16),
-                state,
-            );
-            state.a -= state.mem[_pc + 1] + state.flags.get(FlagType::CY);
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST3 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x18 - 1;
-        }
-
-        Opcode::RPO => {
-            if state.flags.get(FlagType::P) != 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+            Opcode::RST2 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x10 - 1;
             }
-        }
-        Opcode::POPH => {
-            state.l = state.mem[state.sp as usize];
-            state.h = state.mem[state.sp as usize + 1];
-            state.sp += 2;
-        }
-        Opcode::JPO => {
-            if state.flags.get(FlagType::P) != 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+    
+            Opcode::RC => {
+                if self.flags.get(FlagType::CY) == 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
             }
-        }
-        Opcode::XTHL => {
-            let tempsp = state.mem[state.sp as usize];
-            let tempsp1 = state.mem[state.sp as usize + 1];
-            state.mem[state.sp as usize] = state.l;
-            state.mem[state.sp as usize + 1] = state.h;
-            state.l = tempsp;
-            state.h = tempsp1;
-        }
-        Opcode::CPO => {
-            if state.flags.get(FlagType::P) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::JC => {
+                if self.flags.get(FlagType::CY) == 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::PUSHH => {
-            state.mem[state.sp as usize - 1] = state.h;
-            state.mem[state.sp as usize - 2] = state.l;
-            state.sp -= 2;
-        }
-        Opcode::ANI => {
-            check_flag_cy8((state.a as u16) & (state.mem[_pc + 1] as u16), state);
-            state.a &= state.mem[_pc + 1];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST4 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x20 - 1;
-        }
-
-        Opcode::RPE => {
-            if state.flags.get(FlagType::P) == 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+            Opcode::IN => {}
+            Opcode::CC => {
+                if self.flags.get(FlagType::CY) == 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::PCHL => {
-            state.pc = join_bytes(state.h, state.l) - 1;
-        }
-        Opcode::JPE => {
-            if state.flags.get(FlagType::P) == 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::SBI => {
+                check_flag_cy8(
+                    (self.a as u16)
+                        - (self.mem[_pc + 1] as u16)
+                        - (self.flags.get(FlagType::CY) as u16),
+                    self,
+                );
+                self.a -= self.mem[_pc + 1] + self.flags.get(FlagType::CY);
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
             }
-        }
-        Opcode::XCHG => {
-            let temph = state.h;
-            let templ = state.l;
-            state.h = state.d;
-            state.l = state.e;
-            state.d = temph;
-            state.e = templ;
-        }
-        Opcode::CPE => {
-            if state.flags.get(FlagType::P) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::RST3 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x18 - 1;
             }
-        }
-        Opcode::XRI => {
-            check_flag_cy8((state.a as u16) ^ (state.mem[_pc + 1] as u16), state);
-            state.a ^= state.mem[_pc + 1];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST5 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x28 - 1;
-        }
-
-        Opcode::RP => {
-            if state.flags.get(FlagType::S) != 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+    
+            Opcode::RPO => {
+                if self.flags.get(FlagType::P) != 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
             }
-        }
-        Opcode::POPPSW => {
-            state.flags.reg = state.mem[state.sp as usize];
-            state.a = state.mem[state.sp as usize + 1];
-            state.sp += 2;
-        }
-        Opcode::JP => {
-            if state.flags.get(FlagType::S) != 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::POPH => {
+                self.l = self.mem[self.sp as usize];
+                self.h = self.mem[self.sp as usize + 1];
+                self.sp += 2;
             }
-        }
-        Opcode::DI => {
-            state.enable = 0;
-        }
-        Opcode::CP => {
-            if state.flags.get(FlagType::S) != 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::JPO => {
+                if self.flags.get(FlagType::P) != 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::PUSHPSW => {
-            state.mem[state.sp as usize - 2] = state.flags.reg;
-            state.mem[state.sp as usize - 1] = state.a;
-            state.sp -= 2;
-        }
-        Opcode::ORI => {
-            check_flag_cy8((state.a as u16) | (state.mem[_pc + 1] as u16), state);
-            state.a |= state.mem[_pc + 1];
-            check_flag_z(state.a, state);
-            check_flag_s(state.a, state);
-            check_flag_p(state.a, state);
-            state.pc += 1;
-        }
-        Opcode::RST6 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x30 - 1;
-        }
-
-        Opcode::RM => {
-            if state.flags.get(FlagType::S) == 0b1 {
-                state.pc = join_bytes(
-                    state.mem[state.sp as usize + 1],
-                    state.mem[state.sp as usize],
-                ) - 1;
-                state.sp += 2;
+            Opcode::XTHL => {
+                let tempsp = self.mem[self.sp as usize];
+                let tempsp1 = self.mem[self.sp as usize + 1];
+                self.mem[self.sp as usize] = self.l;
+                self.mem[self.sp as usize + 1] = self.h;
+                self.l = tempsp;
+                self.h = tempsp1;
             }
-        }
-        Opcode::SPHL => {
-            state.sp = join_bytes(state.h, state.l);
-        }
-        Opcode::JM => {
-            if state.flags.get(FlagType::S) == 0b1 {
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::CPO => {
+                if self.flags.get(FlagType::P) != 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
             }
-        }
-        Opcode::EI => {
-            state.enable = 1;
-        }
-        Opcode::CM => {
-            if state.flags.get(FlagType::S) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc + 3);
-                state.mem[state.sp as usize - 1] = pchi;
-                state.mem[state.sp as usize - 2] = pclo;
-                state.sp -= 2;
-                state.pc = join_bytes(state.mem[_pc + 2], state.mem[_pc + 1]) - 1;
-            } else {
-                state.pc += 2;
+            Opcode::PUSHH => {
+                self.mem[self.sp as usize - 1] = self.h;
+                self.mem[self.sp as usize - 2] = self.l;
+                self.sp -= 2;
             }
-        }
-        Opcode::CPI => {
-            check_flag_cy8((state.a as u16) - (state.mem[_pc + 1] as u16), state);
-            check_flag_z(state.a - state.mem[_pc + 1], state);
-            check_flag_s(state.a - state.mem[_pc + 1], state);
-            check_flag_p(state.a - state.mem[_pc + 1], state);
-            state.pc += 1;
-        }
-        Opcode::RST7 => {
-            let (pchi, pclo) = split_bytes(state.pc + 1);
-            state.mem[state.sp as usize - 1] = pchi;
-            state.mem[state.sp as usize - 2] = pclo;
-            state.sp -= 2;
-            state.pc = 0x38 - 1;
-        }
-
-        // Not implemented Instructions
-        Opcode::NIMP(x) => {
-            println!("Instruction {:#04x} not implemented", x);
-            process::exit(-1);
-        }
-    };
-
-    state.pc += 1;
+            Opcode::ANI => {
+                check_flag_cy8((self.a as u16) & (self.mem[_pc + 1] as u16), self);
+                self.a &= self.mem[_pc + 1];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
+            }
+            Opcode::RST4 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x20 - 1;
+            }
+    
+            Opcode::RPE => {
+                if self.flags.get(FlagType::P) == 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
+            }
+            Opcode::PCHL => {
+                self.pc = join_bytes(self.h, self.l) - 1;
+            }
+            Opcode::JPE => {
+                if self.flags.get(FlagType::P) == 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::XCHG => {
+                let temph = self.h;
+                let templ = self.l;
+                self.h = self.d;
+                self.l = self.e;
+                self.d = temph;
+                self.e = templ;
+            }
+            Opcode::CPE => {
+                if self.flags.get(FlagType::P) == 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::XRI => {
+                check_flag_cy8((self.a as u16) ^ (self.mem[_pc + 1] as u16), self);
+                self.a ^= self.mem[_pc + 1];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
+            }
+            Opcode::RST5 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x28 - 1;
+            }
+    
+            Opcode::RP => {
+                if self.flags.get(FlagType::S) != 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
+            }
+            Opcode::POPPSW => {
+                self.flags.reg = self.mem[self.sp as usize];
+                self.a = self.mem[self.sp as usize + 1];
+                self.sp += 2;
+            }
+            Opcode::JP => {
+                if self.flags.get(FlagType::S) != 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::DI => {
+                self.enable = 0;
+            }
+            Opcode::CP => {
+                if self.flags.get(FlagType::S) != 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::PUSHPSW => {
+                self.mem[self.sp as usize - 2] = self.flags.reg;
+                self.mem[self.sp as usize - 1] = self.a;
+                self.sp -= 2;
+            }
+            Opcode::ORI => {
+                check_flag_cy8((self.a as u16) | (self.mem[_pc + 1] as u16), self);
+                self.a |= self.mem[_pc + 1];
+                check_flag_z(self.a, self);
+                check_flag_s(self.a, self);
+                check_flag_p(self.a, self);
+                self.pc += 1;
+            }
+            Opcode::RST6 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x30 - 1;
+            }
+    
+            Opcode::RM => {
+                if self.flags.get(FlagType::S) == 0b1 {
+                    self.pc = join_bytes(
+                        self.mem[self.sp as usize + 1],
+                        self.mem[self.sp as usize],
+                    ) - 1;
+                    self.sp += 2;
+                }
+            }
+            Opcode::SPHL => {
+                self.sp = join_bytes(self.h, self.l);
+            }
+            Opcode::JM => {
+                if self.flags.get(FlagType::S) == 0b1 {
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::EI => {
+                self.enable = 1;
+            }
+            Opcode::CM => {
+                if self.flags.get(FlagType::S) == 0b1 {
+                    let (pchi, pclo) = split_bytes(self.pc + 3);
+                    self.mem[self.sp as usize - 1] = pchi;
+                    self.mem[self.sp as usize - 2] = pclo;
+                    self.sp -= 2;
+                    self.pc = join_bytes(self.mem[_pc + 2], self.mem[_pc + 1]) - 1;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            Opcode::CPI => {
+                check_flag_cy8((self.a as u16) - (self.mem[_pc + 1] as u16), self);
+                check_flag_z(self.a - self.mem[_pc + 1], self);
+                check_flag_s(self.a - self.mem[_pc + 1], self);
+                check_flag_p(self.a - self.mem[_pc + 1], self);
+                self.pc += 1;
+            }
+            Opcode::RST7 => {
+                let (pchi, pclo) = split_bytes(self.pc + 1);
+                self.mem[self.sp as usize - 1] = pchi;
+                self.mem[self.sp as usize - 2] = pclo;
+                self.sp -= 2;
+                self.pc = 0x38 - 1;
+            }
+    
+            // Not implemented Instructions
+            Opcode::NIMP(x) => {
+                println!("Instruction {:#04x} not implemented", x);
+                process::exit(-1);
+            }
+        };
+    
+        self.pc += 1;
+    }
 }

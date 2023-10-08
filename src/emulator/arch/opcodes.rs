@@ -246,6 +246,7 @@ pub enum Opcode {
 
     RC,
     JC,
+    IN,
     CC,
     SBI,
     RST3,
@@ -587,7 +588,7 @@ impl Opcode {
             0xd8 => Opcode::RC,
             0xd9 => Opcode::NOP,
             0xda => Opcode::JC,
-            0xdb => Opcode::NIMP(n), // IN - special
+            0xdb => Opcode::IN, // IN - special
             0xdc => Opcode::CC,
             0xdd => Opcode::NOP,
             0xde => Opcode::SBI,
