@@ -6,7 +6,7 @@ mod video;
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Window name".to_owned(),
+        window_title: "8080 Emulator".to_owned(),
         window_width: 560,
         window_height: 640,
         fullscreen: false,
@@ -26,5 +26,4 @@ async fn main() {
     let mut state = rust8080::State::new(memory);
 
     rust8080::emulate(&mut state).await;
-    
 }
