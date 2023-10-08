@@ -1,6 +1,6 @@
 use super::flag::Flag;
 
-pub struct State<'a> {
+pub struct State {
     pub a: u8,
     pub b: u8,
     pub c: u8,
@@ -10,13 +10,13 @@ pub struct State<'a> {
     pub l: u8,
     pub sp: u16,
     pub pc: u16,
-    pub mem: &'a mut [u8],
+    pub mem: Vec<u8>,
     pub flags: Flag,
     pub enable: u8,
 }
 
-impl State<'_> {
-    pub fn new<'a>(mem: &'a mut Vec<u8>) -> State<'a> {
+impl State {
+    pub fn new<'a>(mem: Vec<u8>) -> State {
         State {
             a: 0,
             b: 0,

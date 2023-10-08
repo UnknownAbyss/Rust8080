@@ -939,7 +939,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CNZ => {
             if state.flags.get(FlagType::Z) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -962,7 +962,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST0 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -994,7 +994,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CZ => {
             if state.flags.get(FlagType::Z) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1004,7 +1004,7 @@ pub fn run_op(state: &mut State) {
             }
         }
         Opcode::CALL => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 3);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1024,7 +1024,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST1 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1052,9 +1052,12 @@ pub fn run_op(state: &mut State) {
                 state.pc += 2;
             }
         }
+        Opcode::OUT => {
+            state.pc += 1;
+        },
         Opcode::CNC => {
             if state.flags.get(FlagType::CY) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1077,7 +1080,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST2 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1102,7 +1105,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CC => {
             if state.flags.get(FlagType::CY) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1125,7 +1128,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST3 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1163,7 +1166,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CPO => {
             if state.flags.get(FlagType::P) != 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1186,7 +1189,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST4 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1222,7 +1225,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CPE => {
             if state.flags.get(FlagType::P) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1240,7 +1243,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST5 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1292,7 +1295,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST6 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;
@@ -1323,7 +1326,7 @@ pub fn run_op(state: &mut State) {
         }
         Opcode::CM => {
             if state.flags.get(FlagType::S) == 0b1 {
-                let (pchi, pclo) = split_bytes(state.pc);
+                let (pchi, pclo) = split_bytes(state.pc + 3);
                 state.mem[state.sp as usize - 1] = pchi;
                 state.mem[state.sp as usize - 2] = pclo;
                 state.sp -= 2;
@@ -1340,7 +1343,7 @@ pub fn run_op(state: &mut State) {
             state.pc += 1;
         }
         Opcode::RST7 => {
-            let (pchi, pclo) = split_bytes(state.pc);
+            let (pchi, pclo) = split_bytes(state.pc + 1);
             state.mem[state.sp as usize - 1] = pchi;
             state.mem[state.sp as usize - 2] = pclo;
             state.sp -= 2;

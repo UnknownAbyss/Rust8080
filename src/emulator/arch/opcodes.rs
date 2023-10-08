@@ -238,6 +238,7 @@ pub enum Opcode {
     RNC,
     POPD,
     JNC,
+    OUT,
     CNC,
     PUSHD,
     SUI,
@@ -331,8 +332,9 @@ impl Opcode {
             Self::XRI => 2,
             Self::ORI => 2,
             Self::CPI => 2,
+            Self::OUT => 2,
 
-            Self::NOP => 4,
+            // Self::NOP => 4,
             _ => 1,
         }
     }
@@ -576,7 +578,7 @@ impl Opcode {
             0xd0 => Opcode::RNC,
             0xd1 => Opcode::POPD,
             0xd2 => Opcode::JNC,
-            0xd3 => Opcode::NIMP(n), // OUT - special
+            0xd3 => Opcode::OUT, // OUT - special
             0xd4 => Opcode::CNC,
             0xd5 => Opcode::PUSHD,
             0xd6 => Opcode::SUI,
@@ -591,9 +593,9 @@ impl Opcode {
             0xde => Opcode::SBI,
             0xdf => Opcode::RST3,
             //
-            0xe1 => Opcode::RPO,
-            0xe2 => Opcode::POPH,
-            0xe0 => Opcode::JPO,
+            0xe0 => Opcode::RPO,
+            0xe1 => Opcode::POPH,
+            0xe2 => Opcode::JPO,
             0xe3 => Opcode::XTHL,
             0xe4 => Opcode::CPO,
             0xe5 => Opcode::PUSHH,
