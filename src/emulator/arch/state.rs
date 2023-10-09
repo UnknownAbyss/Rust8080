@@ -25,7 +25,7 @@ impl State {
             e: 0,
             h: 0,
             l: 0,
-            sp: 0xf000,
+            sp: 0x2400,
             pc: 0,
             mem,
             flags: Flag::new(),

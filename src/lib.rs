@@ -4,7 +4,6 @@ use console_engine::{self, pixel, ConsoleEngine};
 pub use emulator::arch::state::State;
 use machine::video::graphics;
 pub use machine::io::IO;
-use machine::io::Actions;
 use std::process;
 use std::{error::Error, fs};
 use console::*;
@@ -14,8 +13,15 @@ mod console;
 mod machine;
 
 pub fn load_rom(file_path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut memory = vec![0; 0x10000];
     let file_data = fs::read(file_path)?;
-    Ok(file_data)
+
+    let mut i = 0;
+    for byte in file_data {
+        memory[i] = byte;
+        i += 1;
+    }
+    Ok(memory)
 }
 
 pub async fn emulate(mut state: State, mut io: IO) {
@@ -30,6 +36,7 @@ pub async fn emulate(mut state: State, mut io: IO) {
     let mut pulse = 0.0;
     let mut debug = true;
     let mut live = false;
+    let mut int = true;
 
     loop {
         engine.wait_frame();
@@ -52,9 +59,19 @@ pub async fn emulate(mut state: State, mut io: IO) {
                 );
             }
         } else {
-            running_state(&mut engine, &mut state, &io);
+            running_state(&mut engine, &mut state, &mut io, &mut debug);
             engine.print(0, 0, &format!("{}", engine.frame_count));
-            debug = graphics::graphics(&state.mem, &mut io).await;
+            if state.enable == 1 && !debug{
+                if int {
+                    state.generate_interrupt(1);
+                } else {
+                    state.generate_interrupt(2);
+                }
+                int = !int;
+            }
+            if graphics::graphics(&state.mem, &mut io).await {
+                debug = true;
+            }
         }
 
 
@@ -78,14 +95,14 @@ fn debug_state(
         BorderStyle::new_double().with_colors(DULL, Color::Reset),
     );
 
+    engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
+    *pulse += 0.1;
+
     engine.print_screen(
         3,
         2,
         &disass(&state, &io, engine.get_height(), engine.get_width(), &mv),
     );
-
-    engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
-    *pulse += 0.1;
 
     if *show_keybinds {
         engine.print_screen(engine.get_width() as i32 - 26, 2, &keybinds());
@@ -100,7 +117,7 @@ fn debug_state(
     );
 }
 
-fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &IO) {
+fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &mut IO, debug: &mut bool) {
     engine.fill_rect(
         1,
         1,
@@ -137,9 +154,15 @@ fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &IO) {
         Color::Reset,
     );
 
-    engine.print_screen(2, 1, &display_ports(&io));
+    engine.print_screen(3, 3, &display_ports(&io));
 
-    for _ in 0..50 {
-        state.run_op();
+    for _ in 0..15000 {
+        state.run_op(io);
+
+        // Breakpoints
+        if state.pc == 0x0b71 {
+            *debug = !*debug;
+            break;
+        }
     }
 }

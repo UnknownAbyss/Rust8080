@@ -49,6 +49,7 @@ pub enum Opcode {
     INRH,
     DCRH,
     MVIH,
+    DAA,
 
     DADH,
     LHLD,
@@ -334,6 +335,7 @@ impl Opcode {
             Self::ORI => 2,
             Self::CPI => 2,
             Self::OUT => 2,
+            Self::IN => 2,
 
             // Self::NOP => 4,
             _ => 1,
@@ -385,7 +387,7 @@ impl Opcode {
             0x24 => Opcode::INRH,
             0x25 => Opcode::DCRH,
             0x26 => Opcode::MVIH,
-            0x27 => Opcode::NIMP(n), // DAA - special
+            0x27 => Opcode::DAA, // DAA - special
 
             0x28 => Opcode::NOP,
             0x29 => Opcode::DADH,

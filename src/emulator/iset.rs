@@ -1,11 +1,23 @@
 use std::process;
 
+use crate::IO;
 use super::arch::{flag::FlagType, opcodes::Opcode, state::State};
 use super::utils::*;
 
 
 impl State {
-    pub fn run_op(&mut self) {
+    pub fn generate_interrupt(&mut self, n: u16) {
+        let (pchi, pclo) = split_bytes(self.pc );
+        self.mem[self.sp as usize - 1] = pchi;
+        self.mem[self.sp as usize - 2] = pclo;
+        self.sp -= 2;
+        self.enable = 0;
+
+        // RST n
+        self.pc = 0x08*n;
+    }
+
+    pub fn run_op(&mut self, io: &mut IO) {
         let _pc = self.pc as usize;
         let opcode = self.mem[_pc];
     
@@ -22,14 +34,14 @@ impl State {
             }
             Opcode::INXB => (self.b, self.c) = split_bytes(join_bytes(self.b, self.c) + 1),
             Opcode::INRB => {
-                // check_flag_ac(self.b, self.b + 1, self);
+                check_flag_ac(self.b, self.b + 1, self);
                 self.b += 1;
                 check_flag_z(self.b, self);
                 check_flag_s(self.b, self);
                 check_flag_p(self.b, self);
             }
             Opcode::DCRB => {
-                // check_flag_ac(self.b, self.b - 1, self);
+                check_flag_ac(self.b, self.b - 1, self);
                 self.b -= 1;
                 check_flag_z(self.b, self);
                 check_flag_s(self.b, self);
@@ -55,14 +67,14 @@ impl State {
             }
             Opcode::DCXB => (self.b, self.c) = split_bytes(join_bytes(self.b, self.c) - 1),
             Opcode::INRC => {
-                // check_flag_ac(self.c, self.c + 1, self);
+                check_flag_ac(self.c, self.c + 1, self);
                 self.c += 1;
                 check_flag_z(self.c, self);
                 check_flag_s(self.c, self);
                 check_flag_p(self.c, self);
             }
             Opcode::DCRC => {
-                // check_flag_ac(self.c, self.c - 1, self);
+                check_flag_ac(self.c, self.c - 1, self);
                 self.c -= 1;
                 check_flag_z(self.c, self);
                 check_flag_s(self.c, self);
@@ -87,14 +99,14 @@ impl State {
             }
             Opcode::INXD => (self.d, self.e) = split_bytes(join_bytes(self.d, self.e) + 1),
             Opcode::INRD => {
-                // check_flag_ac(self.b, self.b + 1, self);
+                check_flag_ac(self.d, self.d + 1, self);
                 self.d += 1;
                 check_flag_z(self.d, self);
                 check_flag_s(self.d, self);
                 check_flag_p(self.d, self);
             }
             Opcode::DCRD => {
-                // check_flag_ac(self.b, self.b - 1, self);
+                check_flag_ac(self.d, self.d - 1, self);
                 self.d -= 1;
                 check_flag_z(self.d, self);
                 check_flag_s(self.d, self);
@@ -122,14 +134,14 @@ impl State {
             }
             Opcode::DCXD => (self.d, self.e) = split_bytes(join_bytes(self.d, self.e) - 1),
             Opcode::INRE => {
-                // check_flag_ac(self.c, self.c + 1, self);
+                check_flag_ac(self.e, self.e + 1, self);
                 self.e += 1;
                 check_flag_z(self.e, self);
                 check_flag_s(self.e, self);
                 check_flag_p(self.e, self);
             }
             Opcode::DCRE => {
-                // check_flag_ac(self.c, self.c - 1, self);
+                check_flag_ac(self.e, self.e - 1, self);
                 self.e -= 1;
                 check_flag_z(self.e, self);
                 check_flag_s(self.e, self);
@@ -157,14 +169,14 @@ impl State {
             }
             Opcode::INXH => (self.h, self.l) = split_bytes(join_bytes(self.h, self.l) + 1),
             Opcode::INRH => {
-                // check_flag_ac(self.h, self.h + 1, self);
+                check_flag_ac(self.h, self.h + 1, self);
                 self.h += 1;
                 check_flag_z(self.h, self);
                 check_flag_s(self.h, self);
                 check_flag_p(self.h, self);
             }
             Opcode::DCRH => {
-                // check_flag_ac(self.h, self.h - 1, self);
+                check_flag_ac(self.h, self.h - 1, self);
                 self.h -= 1;
                 check_flag_z(self.h, self);
                 check_flag_s(self.h, self);
@@ -173,6 +185,11 @@ impl State {
             Opcode::MVIH => {
                 self.h = self.mem[_pc + 1];
                 self.pc += 1;
+            }
+            Opcode::DAA => {
+                if (self.a & 0xf) > 9 {
+                    self.a += 0x06;
+                }
             }
             Opcode::DADH => {
                 let hl = join_bytes(self.h, self.l);
@@ -187,14 +204,14 @@ impl State {
             }
             Opcode::DCXH => (self.h, self.l) = split_bytes(join_bytes(self.h, self.l) - 1),
             Opcode::INRL => {
-                // check_flag_ac(self.l, self.l + 1, self);
+                check_flag_ac(self.l, self.l + 1, self);
                 self.l += 1;
                 check_flag_z(self.l, self);
                 check_flag_s(self.l, self);
                 check_flag_p(self.l, self);
             }
             Opcode::DCRL => {
-                // check_flag_ac(self.l, self.l - 1, self);
+                check_flag_ac(self.l, self.l - 1, self);
                 self.l -= 1;
                 check_flag_z(self.l, self);
                 check_flag_s(self.l, self);
@@ -218,16 +235,16 @@ impl State {
             }
             Opcode::INXSP => self.sp += 1,
             Opcode::INRM => {
-                // check_flag_ac(self.h, self.h + 1, self);
                 let adr = join_bytes(self.h, self.l) as usize;
+                check_flag_ac(self.mem[adr], self.mem[adr] + 1, self);
                 self.mem[adr] += 1;
                 check_flag_z(self.mem[adr], self);
                 check_flag_s(self.mem[adr], self);
                 check_flag_p(self.mem[adr], self);
             }
             Opcode::DCRM => {
-                // check_flag_ac(self.h, self.h - 1, self);
                 let adr = join_bytes(self.h, self.l) as usize;
+                check_flag_ac(self.mem[adr], self.mem[adr] - 1, self);
                 self.mem[adr] -= 1;
                 check_flag_z(self.mem[adr], self);
                 check_flag_s(self.mem[adr], self);
@@ -251,14 +268,14 @@ impl State {
             }
             Opcode::DCXSP => self.sp -= 1,
             Opcode::INRA => {
-                // check_flag_ac(self.a, self.a + 1, self);
+                check_flag_ac(self.a, self.a + 1, self);
                 self.a += 1;
                 check_flag_z(self.a, self);
                 check_flag_s(self.a, self);
                 check_flag_p(self.a, self);
             }
             Opcode::DCRA => {
-                // check_flag_ac(self.a, self.a - 1, self);
+                check_flag_ac(self.a, self.a - 1, self);
                 self.a -= 1;
                 check_flag_z(self.a, self);
                 check_flag_s(self.a, self);
@@ -1055,6 +1072,8 @@ impl State {
                 }
             }
             Opcode::OUT => {
+                let port = self.mem[_pc + 1];
+                io.machine_out(port, self.a); 
                 self.pc += 1;
             },
             Opcode::CNC => {
@@ -1105,7 +1124,11 @@ impl State {
                     self.pc += 2;
                 }
             }
-            Opcode::IN => {}
+            Opcode::IN => {
+                let port = self.mem[_pc + 1];
+                self.a = io.machine_in(port);
+                self.pc += 1;
+            }
             Opcode::CC => {
                 if self.flags.get(FlagType::CY) == 0b1 {
                     let (pchi, pclo) = split_bytes(self.pc + 3);

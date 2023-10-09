@@ -15,7 +15,7 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let file = "./rom/spaceinvaders/invaders_final.rom";
+    let file = "./rom/spaceinvaders/space-invaders.rom";
 
     let memory = rust8080::load_rom(file).unwrap_or_else(|err| {
         eprintln!("Error loading rom: {}", err);

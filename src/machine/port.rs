@@ -3,8 +3,8 @@ pub struct Port {
 }
 
 impl Port {
-    pub fn new() -> Self {
-        Port { reg: 0xff }
+    pub fn new(n: u8) -> Self {
+        Port { reg: n }
     }
 
     pub fn bit(&self, n: u8) -> u8 {

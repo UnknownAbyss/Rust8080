@@ -24,7 +24,7 @@ fn draw_screen(mem: &Vec<u8>) {
 
     for j in 0..224 {
         for i in 0..32 {
-            let byte = mem[0x2400 + i + j*32];
+            let byte = mem[0x2400 + (31 - i) + j*32];
             
             for bit in 0..8 {
                 let val = ((byte << bit) >> 7) & 0b1 == 0b1;
@@ -54,5 +54,25 @@ fn handle_input(io: &mut IO) {
     }
     if is_key_down(KeyCode::Period) {
         io.io_op(Actions::P1Right);
+    }
+    if is_key_down(KeyCode::Slash) {
+        io.io_op(Actions::P1Shot);
+    }
+
+    if is_key_down(KeyCode::Q) {
+        io.io_op(Actions::P2Left);
+    }
+    if is_key_down(KeyCode::W) {
+        io.io_op(Actions::P2Right);
+    }
+    if is_key_down(KeyCode::E) {
+        io.io_op(Actions::P2Shot);
+    }
+
+    if is_key_down(KeyCode::Key9) {
+        io.io_op(Actions::Credit);
+    }
+    if is_key_down(KeyCode::Key0) {
+        io.io_op(Actions::P1Start);
     }
 }

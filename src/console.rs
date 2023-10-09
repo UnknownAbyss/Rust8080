@@ -17,7 +17,7 @@ use crate::{machine::video::graphics, IO};
 
 pub const WIDTH: u32 = 50;
 pub const HEIGHT: u32 = 20;
-pub const TARGET_FPS: u32 = 90;
+pub const TARGET_FPS: u32 = 60;
 
 pub const DARK: Color = Color::Rgb {
     r: 148,
@@ -88,7 +88,7 @@ pub async fn process_input(
 
     if engine.is_key_held(KeyCode::Char('r')) {
         *mv = 0;
-        state.run_op();
+        state.run_op(io);
         if *live {
             graphics::graphics(&state.mem, io).await;
         }
@@ -97,11 +97,15 @@ pub async fn process_input(
     if engine.is_key_held(KeyCode::Char('R')) {
         *mv = 0;
         for _ in 0..100 {
-            state.run_op();
+            state.run_op(io);
         }
         if *live {
             graphics::graphics(&state.mem, io).await;
         }
+    }
+
+    if engine.is_key_held(KeyCode::Char('i')) || engine.is_key_pressed(KeyCode::Char('I')) {
+        state.generate_interrupt(2);
     }
 
     if engine.is_key_held(KeyCode::Char('d')) || engine.is_key_pressed(KeyCode::Char('D')) {
@@ -143,6 +147,7 @@ pub fn keybinds() -> Screen {
     let kbinds = [
         "r     - run once",
         "R     - run 100",
+        "i     - gen INT",
         "up    - scroll up",
         "down  - scroll down",
         "space - reset scroll",
@@ -174,6 +179,7 @@ pub fn disass(state: &State, io: &IO, height: u32, width: u32, line: &i32) -> Sc
     let mut scr = Screen::new(width - 6, height - 4);
 
     scr.print_screen(1, 0, &display_status(state, io));
+    scr.print_screen(54, 1, &display_ports(&io));
     scr.print_screen(1, 6, &display_ops(state, height, line));
 
     scr
@@ -182,14 +188,14 @@ pub fn disass(state: &State, io: &IO, height: u32, width: u32, line: &i32) -> Sc
 fn display_status(state: &State, io: &IO) -> Screen {
     let mut scr = Screen::new(83, 5);
 
-    scr.print_fbg(1, 0, "Flags:", NORMAL, Color::Reset);
+    scr.print_fbg(1, 0, &format!("Flags: EN - {:02x}", state.enable), NORMAL, Color::Reset);
     scr.print_screen(0, 1, &display_flags(&state.flags));
 
     scr.print_fbg(22, 0, "Registers:", NORMAL, Color::Reset);
     scr.print_screen(21, 1, &display_regs(&state));
 
     scr.print_fbg(55, 0, "Ports:", NORMAL, Color::Reset);
-    scr.print_screen(54, 1, &display_ports(&io));
+    scr.print_fbg(62, 0, &format!("SH: {:04x}", io.shift), DARKENAB, Color::Reset);
     scr
 }
 
@@ -313,7 +319,7 @@ fn display_flags(flags: &Flag) -> Screen {
 }
 
 fn display_ops(state: &State, height: u32, line: &i32) -> Screen {
-    let mut scr = Screen::new(60, height - 11);
+    let mut scr = Screen::new(52, height - 11);
     let mut counter = 0 as i32;
     let mut ip = state.pc as i32 + line;
 
@@ -408,7 +414,7 @@ fn display_ops(state: &State, height: u32, line: &i32) -> Screen {
 }
 
 pub fn display_ports(io: &IO) -> Screen {
-    let mut scr = Screen::new(27, 4);
+    let mut scr = Screen::new(27, 6);
     scr.rect_border(
         0,
         0,
@@ -418,11 +424,17 @@ pub fn display_ports(io: &IO) -> Screen {
     );
     scr.print_fbg(2, 1, "R1:", NORMAL, Color::Reset);
     scr.print_fbg(14, 1, "R2:", NORMAL, Color::Reset);
-    scr.print_fbg(2, 2, "SH:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 2, "R3:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 2, "W6:", NORMAL, Color::Reset);
+    
+    scr.print_fbg(2, 3, "W2:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 3, "W3:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 4, "W4:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 4, "W5:", NORMAL, Color::Reset);
     // scr.print_fbg(2, 3, "R3:", NORMAL, Color::Reset);
     for i in 0..8 {
         scr.print_fbg(
-            5 + i, 
+            5 + (7 - i), 
             1, 
             &format!("{}", io.R1.bit(i as u8)), 
             if io.R1.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
@@ -431,20 +443,28 @@ pub fn display_ports(io: &IO) -> Screen {
     }
     for i in 0..8 {
         scr.print_fbg(
-        17 + i, 
+        17 + (7 - i), 
             1, 
             &format!("{}", io.R2.bit(i as u8)), 
             if io.R2.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
             Color::Reset
         );
     }
-    scr.print_fbg(
-        5, 
-        2, 
-        &format!("{:08b}|{:08b}", io.shift >> 8, io.shift & 0xff), 
-        ENABLED, 
-        Color::Reset
-    );
+    for i in 0..8 {
+        scr.print_fbg(
+        5 + (7 - i), 
+            2, 
+            &format!("{}", io.R3.bit(i as u8)), 
+            if io.R3.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            Color::Reset
+        );
+    }
+    scr.print_fbg(17, 2, &format!("{:08b}", io.W6.reg), ENABLED, Color::Reset);
+
+    scr.print_fbg(5, 3, &format!("{:08b}", io.W2.reg), ENABLED, Color::Reset);
+    scr.print_fbg(17, 3, &format!("{:08b}", io.W3.reg), ENABLED, Color::Reset);
+    scr.print_fbg(5, 4, &format!("{:08b}", io.W4.reg), ENABLED, Color::Reset);
+    scr.print_fbg(17, 4, &format!("{:08b}", io.W5.reg), ENABLED, Color::Reset);
 
     scr
 }
