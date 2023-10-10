@@ -624,8 +624,8 @@ impl Opcode {
             0xf7 => Opcode::RST6,
 
             0xf8 => Opcode::RM,
-            0xfa => Opcode::SPHL,
-            0xf9 => Opcode::JM,
+            0xf9 => Opcode::SPHL,
+            0xfa => Opcode::JM,
             0xfb => Opcode::EI, // EI - special
             0xfc => Opcode::CM,
             0xfd => Opcode::NOP,

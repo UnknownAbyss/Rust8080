@@ -104,8 +104,11 @@ pub async fn process_input(
         }
     }
 
-    if engine.is_key_held(KeyCode::Char('i')) || engine.is_key_pressed(KeyCode::Char('I')) {
+    if engine.is_key_held(KeyCode::Char('i')) {
         state.generate_interrupt(2);
+    }
+    if engine.is_key_pressed(KeyCode::Char('I')) {
+        state.generate_interrupt(1);
     }
 
     if engine.is_key_held(KeyCode::Char('d')) || engine.is_key_pressed(KeyCode::Char('D')) {

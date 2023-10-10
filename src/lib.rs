@@ -160,9 +160,9 @@ fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &mut IO, deb
         state.run_op(io);
 
         // Breakpoints
-        if state.pc == 0x0b71 {
-            *debug = !*debug;
-            break;
-        }
+        // if state.pc == 0x0bf4 {
+        //     *debug = !*debug;
+        //     break;
+        // }
     }
 }
