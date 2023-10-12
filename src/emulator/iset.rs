@@ -152,9 +152,10 @@ impl State {
                 self.pc += 1;
             }
             Opcode::RAR => {
+                let bit7 = self.flags.get(FlagType::CY);
                 check_flag_cy8((self.a as u16).rotate_right(1), self);
                 self.a = self.a >> 1;
-                self.a |= (self.a << 1) & 0x80;
+                self.a |= bit7 << 7;
             }
             Opcode::LXIH => {
                 self.h = self.mem[_pc + 2];

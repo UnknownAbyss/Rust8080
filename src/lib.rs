@@ -95,15 +95,17 @@ fn debug_state(
         BorderStyle::new_double().with_colors(DULL, Color::Reset),
     );
 
-    engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
-    *pulse += 0.1;
-
+    
     engine.print_screen(
         3,
         2,
         &disass(&state, &io, engine.get_height(), engine.get_width(), &mv),
     );
 
+    engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
+    *pulse += 0.1;
+
+    
     if *show_keybinds {
         engine.print_screen(engine.get_width() as i32 - 26, 2, &keybinds());
     }
