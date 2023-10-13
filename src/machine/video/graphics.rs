@@ -69,10 +69,13 @@ fn handle_input(io: &mut IO) {
         io.io_op(Actions::P2Shot);
     }
 
-    if is_key_down(KeyCode::Key9) {
+    if is_key_down(KeyCode::Key8) {
         io.io_op(Actions::Credit);
     }
-    if is_key_down(KeyCode::Key0) {
+    if is_key_down(KeyCode::Key9) {
         io.io_op(Actions::P1Start);
+    }
+    if is_key_down(KeyCode::Key0) {
+        io.io_op(Actions::P2Start);
     }
 }

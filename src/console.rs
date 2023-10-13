@@ -150,7 +150,8 @@ pub fn keybinds() -> Screen {
     let kbinds = [
         "r     - run once",
         "R     - run 100",
-        "i     - gen INT",
+        "i     - End-Scr Int",
+        "I     - Mid-Scr Int",
         "up    - scroll up",
         "down  - scroll down",
         "space - reset scroll",
@@ -191,14 +192,14 @@ pub fn disass(state: &State, io: &IO, height: u32, width: u32, line: &i32) -> Sc
 fn display_status(state: &State, io: &IO) -> Screen {
     let mut scr = Screen::new(83, 5);
 
-    scr.print_fbg(1, 0, &format!("Flags: EN - {:02x}", state.enable), NORMAL, Color::Reset);
+    scr.print_fbg(1, 0, &format!("Flags: INT EN - {:01x}", state.enable), NORMAL, Color::Reset);
     scr.print_screen(0, 1, &display_flags(&state.flags));
 
     scr.print_fbg(22, 0, "Registers:", NORMAL, Color::Reset);
     scr.print_screen(21, 1, &display_regs(&state));
 
     scr.print_fbg(55, 0, "Ports:", NORMAL, Color::Reset);
-    scr.print_fbg(62, 0, &format!("SH: {:04x}", io.shift), DARKENAB, Color::Reset);
+    scr.print_fbg(62, 0, &format!("SH-R: {:04x}", io.shift), DARKENAB, Color::Reset);
     scr
 }
 
@@ -425,22 +426,22 @@ pub fn display_ports(io: &IO) -> Screen {
         scr.get_height() as i32 - 1,
         BorderStyle::new_heavy().with_colors(DARK, Color::Reset),
     );
-    scr.print_fbg(2, 1, "R1:", NORMAL, Color::Reset);
-    scr.print_fbg(14, 1, "R2:", NORMAL, Color::Reset);
-    scr.print_fbg(2, 2, "R3:", NORMAL, Color::Reset);
-    scr.print_fbg(14, 2, "W6:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 1, "r1:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 1, "r2:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 2, "r3:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 2, "w6:", NORMAL, Color::Reset);
     
-    scr.print_fbg(2, 3, "W2:", NORMAL, Color::Reset);
-    scr.print_fbg(14, 3, "W3:", NORMAL, Color::Reset);
-    scr.print_fbg(2, 4, "W4:", NORMAL, Color::Reset);
-    scr.print_fbg(14, 4, "W5:", NORMAL, Color::Reset);
-    // scr.print_fbg(2, 3, "R3:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 3, "w2:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 3, "w3:", NORMAL, Color::Reset);
+    scr.print_fbg(2, 4, "w4:", NORMAL, Color::Reset);
+    scr.print_fbg(14, 4, "w5:", NORMAL, Color::Reset);
+    // scr.print_fbg(2, 3, "r3:", NORMAL, Color::Reset);
     for i in 0..8 {
         scr.print_fbg(
             5 + (7 - i), 
             1, 
-            &format!("{}", io.R1.bit(i as u8)), 
-            if io.R1.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            &format!("{}", io.r1.bit(i as u8)), 
+            if io.r1.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
             Color::Reset
         );
     }
@@ -448,8 +449,8 @@ pub fn display_ports(io: &IO) -> Screen {
         scr.print_fbg(
         17 + (7 - i), 
             1, 
-            &format!("{}", io.R2.bit(i as u8)), 
-            if io.R2.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            &format!("{}", io.r2.bit(i as u8)), 
+            if io.r2.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
             Color::Reset
         );
     }
@@ -457,17 +458,17 @@ pub fn display_ports(io: &IO) -> Screen {
         scr.print_fbg(
         5 + (7 - i), 
             2, 
-            &format!("{}", io.R3.bit(i as u8)), 
-            if io.R3.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
+            &format!("{}", io.r3.bit(i as u8)), 
+            if io.r3.bit(i as u8) == 1 { ENABLED } else { DISABLED }, 
             Color::Reset
         );
     }
-    scr.print_fbg(17, 2, &format!("{:08b}", io.W6.reg), ENABLED, Color::Reset);
+    scr.print_fbg(17, 2, &format!("{:08b}", io.w6.reg), ENABLED, Color::Reset);
 
-    scr.print_fbg(5, 3, &format!("{:08b}", io.W2.reg), ENABLED, Color::Reset);
-    scr.print_fbg(17, 3, &format!("{:08b}", io.W3.reg), ENABLED, Color::Reset);
-    scr.print_fbg(5, 4, &format!("{:08b}", io.W4.reg), ENABLED, Color::Reset);
-    scr.print_fbg(17, 4, &format!("{:08b}", io.W5.reg), ENABLED, Color::Reset);
+    scr.print_fbg(5, 3, &format!("{:08b}", io.w2.reg), ENABLED, Color::Reset);
+    scr.print_fbg(17, 3, &format!("{:08b}", io.w3.reg), ENABLED, Color::Reset);
+    scr.print_fbg(5, 4, &format!("{:08b}", io.w4.reg), ENABLED, Color::Reset);
+    scr.print_fbg(17, 4, &format!("{:08b}", io.w5.reg), ENABLED, Color::Reset);
 
     scr
 }

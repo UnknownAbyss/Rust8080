@@ -4,6 +4,7 @@ use console_engine::{self, pixel, ConsoleEngine};
 pub use emulator::arch::state::State;
 use machine::video::graphics;
 pub use machine::io::IO;
+use std::env::Args;
 use std::process;
 use std::{error::Error, fs};
 use console::*;
@@ -11,6 +12,15 @@ use console::*;
 mod emulator;
 mod console;
 mod machine;
+
+pub fn get_file(cmd_line: Args) -> Option<String> {
+    let mut cmds = cmd_line.into_iter();
+    cmds.next();
+    match cmds.next() {
+        Some(x) => Some(x),
+        None => None
+    }
+}
 
 pub fn load_rom(file_path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut memory = vec![0; 0x10000];
@@ -105,7 +115,7 @@ fn debug_state(
     engine.print_screen(79, engine.get_height() as i32 / 2 - 6, &pulse_anim(pulse));
     *pulse += 0.1;
 
-    
+
     if *show_keybinds {
         engine.print_screen(engine.get_width() as i32 - 26, 2, &keybinds());
     }
@@ -119,7 +129,7 @@ fn debug_state(
     );
 }
 
-fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &mut IO, debug: &mut bool) {
+fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &mut IO, _debug: &mut bool) {
     engine.fill_rect(
         1,
         1,
@@ -158,7 +168,7 @@ fn running_state(engine: &mut ConsoleEngine, state: &mut State, io: &mut IO, deb
 
     engine.print_screen(3, 3, &display_ports(&io));
 
-    for _ in 0..15000 {
+    for _ in 0..5000 {
         state.run_op(io);
 
         // Breakpoints

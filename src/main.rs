@@ -15,10 +15,16 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let file = "./rom/spaceinvaders/space-invaders.rom";
-    // let file = "./rom/test/cpudiag.bin";
+    let mut file: String = "./rom/spaceinvaders/space-invaders.rom".to_string();
 
-    let memory = rust8080::load_rom(file).unwrap_or_else(|err| {
+    let cmd_line = std::env::args();
+    
+    file = match rust8080::get_file(cmd_line) {
+        Some(x) => x,
+        None => file,
+    };
+
+    let memory = rust8080::load_rom(&file).unwrap_or_else(|err| {
         eprintln!("Error loading rom: {}", err);
         process::exit(-1);
     });
@@ -26,4 +32,5 @@ async fn main() {
     let state = rust8080::State::new(memory);
     let io = rust8080::IO::new(); 
     rust8080::emulate(state, io).await;
+    process::exit(0);
 }
